@@ -1,0 +1,116 @@
+# SPDX-License-Identifier: GPL-2.0-only
+from __future__ import annotations
+
+from enum import Enum, unique
+from typing import Iterator, List
+
+from fdt2 import Fdt2
+
+
+@unique
+class Mode(Enum):
+	VIDEO_MODE = 'dsi_video_mode', ['MIPI_DSI_MODE_VIDEO']
+	CMD_MODE = 'dsi_cmd_mode', []
+
+	def __new__(cls, value: str, flags: List[str]) -> Mode:
+		obj = object.__new__(cls)
+		obj._value_ = value
+		obj.flags = flags
+		return obj
+
+
+@unique
+class TrafficMode(Enum):
+	SYNC_EVENT = 'non_burst_sync_event', []
+	SYNC_PULSE = 'non_burst_sync_pulse', ['MIPI_DSI_MODE_VIDEO_SYNC_PULSE']
+	BURST_MODE = 'burst_mode', ['MIPI_DSI_MODE_VIDEO_BURST']
+
+	def __new__(cls, value: str, flags: List[str]) -> TrafficMode:
+		obj = object.__new__(cls)
+		obj._value_ = value
+		obj.flags = flags
+		return obj
+
+
+class Dimension:
+	@unique
+	class Type(Enum):
+		HORIZONTAL = 'h', 'width'
+		VERTICAL = 'v', 'height'
+
+		def __init__(self, prefix: str, size: str) -> None:
+			self.prefix = prefix
+			self.size = size
+
+	def __init__(self, fdt: Fdt2, node: int, t: Type) -> None:
+		self.type = type
+		self.px = fdt.getprop(node, f'qcom,mdss-dsi-panel-{t.size}').as_int32()
+		self.fp = fdt.getprop(node, f'qcom,mdss-dsi-{t.prefix}-front-porch').as_int32()
+		self.bp = fdt.getprop(node, f'qcom,mdss-dsi-{t.prefix}-back-porch').as_int32()
+		self.pw = fdt.getprop(node, f'qcom,mdss-dsi-{t.prefix}-pulse-width').as_int32()
+		self.size = fdt.getprop_int32(node, f'qcom,mdss-pan-physical-{t.size}-dimension')
+
+
+class Command:
+	@unique
+	class State(Enum):
+		LP_MODE = 'dsi_lp_mode'
+		HS_MODE = 'dsi_hs_mode'
+
+	def __init__(self, fdt: Fdt2, node: int, cmd: str) -> None:
+		self.state = Command.State(fdt.getprop(node, f'qcom,mdss-dsi-{cmd}-command-state').as_str())
+		self.seq = fdt.getprop(node, f'qcom,mdss-dsi-{cmd}-command')
+
+
+def _remove_prefixes(text: str, *args: str) -> str:
+	for prefix in args:
+		text = text[len(prefix):] if text.startswith(prefix) else text
+	return text
+
+
+class Panel:
+	def __init__(self, name: str, fdt: Fdt2, node: int) -> None:
+		self.name = name
+		self.id = _remove_prefixes(fdt.get_name(node), 'qcom,mdss_dsi_', 'ss_dsi_panel_').lower()
+		self.h = Dimension(fdt, node, Dimension.Type.HORIZONTAL)
+		self.v = Dimension(fdt, node, Dimension.Type.VERTICAL)
+		self.framerate = fdt.getprop(node, 'qcom,mdss-dsi-panel-framerate').as_int32()
+		self.bpp = fdt.getprop(node, 'qcom,mdss-dsi-bpp').as_int32()
+		self.mode = Mode(fdt.getprop(node, 'qcom,mdss-dsi-panel-type').as_str())
+		self.traffic_mode = TrafficMode(fdt.getprop(node, 'qcom,mdss-dsi-traffic-mode').as_str())
+
+		self.lanes = 0
+		while fdt.getprop_or_none(node, f'qcom,mdss-dsi-lane-{self.lanes}-state') is not None:
+			self.lanes += 1
+
+		self.flags = self.mode.flags + self.traffic_mode.flags
+
+		if fdt.getprop_int32(node, 'qcom,mdss-dsi-h-sync-pulse') != 0:
+			self.flags.append('MIPI_DSI_MODE_VIDEO_HSE')
+
+		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-tx-eot-append') is None:
+			self.flags.append('MIPI_DSI_MODE_EOT_PACKET')
+
+		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-force-clock-lane-hs') is None \
+				and fdt.getprop_or_none(node, 'qcom,mdss-dsi-force-clk-lane-hs') is None:
+			self.flags.append('MIPI_DSI_CLOCK_NON_CONTINUOUS')
+
+		self.on_cmd = Command(fdt, node, 'on')
+		self.off_cmd = Command(fdt, node, 'off')
+
+		# If all commands are sent in LPM, add flag globally
+		if self.on_cmd.state == Command.State.LP_MODE == self.off_cmd.state:
+			self.flags.append('MIPI_DSI_MODE_LPM')
+
+	@staticmethod
+	def parse(fdt: Fdt2, node: int) -> Panel:
+		name = fdt.getprop_or_none(node, 'qcom,mdss-dsi-panel-name')
+		return name and Panel(name.as_str(), fdt, node)
+
+	@staticmethod
+	def find(fdt: Fdt2) -> Iterator[Panel]:
+		for mdp in fdt.find_by_compatible('qcom,mdss_mdp'):
+			for sub in fdt.subnodes(mdp):
+				panel = Panel.parse(fdt, sub)
+				if panel:
+					yield panel
