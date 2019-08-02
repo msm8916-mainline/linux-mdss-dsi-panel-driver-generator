@@ -4,13 +4,9 @@ from __future__ import annotations
 from panel import Panel
 
 
-def generate_panel_simple(p: Panel) -> None:
-	with open(f'{p.id}/panel-simple-{p.id}.c', 'w') as f:
-		f.write(f'''\
-// SPDX-License-Identifier: GPL-2.0-only
-// Copyright (c) 2013, The Linux Foundation. All rights reserved.
-
-static const struct drm_display_mode {p.id}_mode = {{
+def generate_mode(p: Panel) -> str:
+	return f'''\
+static const struct drm_display_mode {p.short_id}_mode = {{
 	.clock = ({p.h.px} + {p.h.fp} + {p.h.pw} + {p.h.bp}) * ({p.v.px} + {p.v.fp} + {p.v.pw} + {p.v.bp}) * {p.framerate} / 1000,
 	.hdisplay = {p.h.px},
 	.hsync_start = {p.h.px} + {p.h.fp},
@@ -21,11 +17,22 @@ static const struct drm_display_mode {p.id}_mode = {{
 	.vsync_end = {p.v.px} + {p.v.fp} + {p.v.pw},
 	.vtotal = {p.v.px} + {p.v.fp} + {p.v.pw} + {p.v.bp},
 	.vrefresh = {p.framerate},
+	.width_mm = {p.h.size},
+	.height_mm = {p.v.size},
 }};
+'''
 
-static const struct panel_desc_dsi {p.id} = {{
+
+def generate_panel_simple(p: Panel) -> None:
+	with open(f'{p.id}/panel-simple-{p.short_id}.c', 'w') as f:
+		f.write(f'''\
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2013, The Linux Foundation. All rights reserved.
+
+{generate_mode(p)}
+static const struct panel_desc_dsi {p.short_id} = {{
 	.desc = {{
-		.modes = &{p.id}_mode,
+		.modes = &{p.short_id}_mode,
 		.num_modes = 1,
 		.bpc = {int(p.bpp / 3)},
 		.size = {{
@@ -34,7 +41,7 @@ static const struct panel_desc_dsi {p.id} = {{
 		}},
 	}},
 	.flags = {' | '.join(p.flags)},
-	.format = MIPI_DSI_FMT_RGB888,
+	.format = {p.format},
 	.lanes = {p.lanes},
 }};
 ''')

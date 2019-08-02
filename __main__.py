@@ -3,6 +3,7 @@ import argparse
 import os
 import shutil
 
+from driver import generate_driver
 from fdt2 import Fdt2
 from panel import Panel
 from simple import generate_panel_simple
@@ -16,11 +17,13 @@ def generate(p: Panel) -> None:
 	os.mkdir(p.id)
 
 	generate_panel_simple(p)
+	generate_driver(p)
 
 
 parser = argparse.ArgumentParser(
 	description="Generate Linux DRM panel driver based on (downstream) MDSS DSI device tree")
 parser.add_argument('dtb', nargs='+', type=argparse.FileType('rb'), help="Device tree blobs to parse")
+parser.add_argument('-r', '--regulator', nargs='?', const='power', help="Enable panel power supply through regulator")
 args = parser.parse_args()
 
 for f in args.dtb:
@@ -31,6 +34,7 @@ for f in args.dtb:
 		found = False
 		for panel in Panel.find(fdt):
 			found = True
+			panel.regulator = args.regulator
 			generate(panel)
 
 		if not found:

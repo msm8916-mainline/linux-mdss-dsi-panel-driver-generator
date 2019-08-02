@@ -32,3 +32,11 @@ class Fdt2(FdtRo):
 		if prop == -FDT_ERR_NOTFOUND:
 			return default
 		return prop.as_int32()
+
+
+def property_as_uint32_array(self):
+	num = int(len(self) / 4)
+	return list(struct.unpack('>' + ('L' * num), self))
+
+
+Property.as_uint32_array = property_as_uint32_array
