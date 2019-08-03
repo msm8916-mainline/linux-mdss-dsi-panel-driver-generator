@@ -80,7 +80,7 @@ class DCSCommand(Enum):
 	READ_MEMORY_START = 0x2E,
 	SET_PARTIAL_AREA = 0x30,
 	SET_SCROLL_AREA = 0x33, 6,
-	SET_TEAR_OFF = 0x34, 0, 'mipi_dsi_dcs_set_tear_off', TearMode.get_params
+	SET_TEAR_OFF = 0x34, 0, 'mipi_dsi_dcs_set_tear_off'
 	SET_TEAR_ON = 0x35, 1, 'mipi_dsi_dcs_set_tear_on', TearMode.get_params
 	SET_ADDRESS_MODE = 0x36, 1,
 	SET_SCROLL_START = 0x37, 2,
