@@ -23,8 +23,11 @@ def generate(p: Panel) -> None:
 parser = argparse.ArgumentParser(
 	description="Generate Linux DRM panel driver based on (downstream) MDSS DSI device tree")
 parser.add_argument('dtb', nargs='+', type=argparse.FileType('rb'), help="Device tree blobs to parse")
-parser.add_argument('-r', '--regulator', nargs='?', const='power', help="Enable panel power supply through regulator")
+parser.add_argument('-r', '--regulator', nargs='*', help="Enable panel power supply through regulator")
 args = parser.parse_args()
+
+if args.regulator == []:
+	args.regulator = ['power']
 
 for f in args.dtb:
 	with f:

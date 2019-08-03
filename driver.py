@@ -34,7 +34,10 @@ def generate_struct(p: Panel) -> str:
 	if p.backlight:
 		variables.append('struct backlight_device *backlight;')
 	if p.regulator:
-		variables.append('struct regulator *supply;')
+		if len(p.regulator) > 1:
+			variables.append(f'struct regulator_bulk_data supplies[{len(p.regulator)}];')
+		else:
+			variables.append('struct regulator *supply;')
 	if p.reset_seq:
 		variables.append('struct gpio_desc *reset_gpio;')
 
@@ -134,7 +137,10 @@ def generate_cleanup(p: Panel, indent: int = 1) -> str:
 	if p.reset_seq:
 		cleanup.append('gpiod_set_value_cansleep(ctx->reset_gpio, 0);')
 	if p.regulator:
-		cleanup.append('regulator_disable(ctx->supply);')
+		if len(p.regulator) > 1:
+			cleanup.append('regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);')
+		else:
+			cleanup.append('regulator_disable(ctx->supply);')
 
 	if cleanup:
 		sep = '\n' + '\t' * indent
@@ -156,7 +162,16 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 '''
 
 	if p.regulator:
-		s += '''
+		if len(p.regulator) > 1:
+			s += '''
+	ret = regulator_bulk_enable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable regulators: %d\\n", ret);
+		return ret;
+	}
+'''
+		else:
+			s += '''
 	ret = regulator_enable(ctx->supply);
 	if (ret < 0) {
 		dev_err(dev, "Failed to enable regulator: %d\\n", ret);
@@ -283,7 +298,20 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 '''
 
 	if p.regulator:
-		s += f'''
+		if len(p.regulator) > 1:
+			i = 0
+			for i, r in enumerate(p.regulator):
+				s += f'\n\tctx->supplies[{i}].supply = "{r}";'
+			s += f'''
+	ret = devm_regulator_bulk_get(dev, ARRAY_SIZE(ctx->supplies),
+				      ctx->supplies);
+	if (ret < 0) {{
+		dev_err(dev, "Failed to get regulators: %d\\n", ret);
+		return ret;
+	}}
+'''
+		else:
+			s += f'''
 	ctx->supply = devm_regulator_get(dev, "{p.regulator}");
 	if (IS_ERR(ctx->supply)) {{
 		ret = PTR_ERR(ctx->supply);
