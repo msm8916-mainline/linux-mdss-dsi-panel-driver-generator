@@ -38,6 +38,7 @@ class TrafficMode(Enum):
 class BacklightControl(Enum):
 	PWM = 'bl_ctrl_pwm'
 	DCS = 'bl_ctrl_dcs'
+	WLED = 'bl_ctrl_wled'
 
 
 class Dimension:
@@ -118,6 +119,7 @@ class Panel:
 	def __init__(self, name: str, fdt: Fdt2, node: int) -> None:
 		self.name = name
 		self.id = _remove_prefixes(fdt.get_name(node), 'qcom,mdss_dsi_', 'ss_dsi_panel_').lower()
+		print(f'Parsing: {self.id} ({name})')
 		self.short_id = _remove_suffixes(self.id, '_video', '_vid', '_cmd',
 										 '_hd', '_qhd', '_720p', '_1080p', '_wvga', '_fwvga', '_qvga')
 		self.h = Dimension(fdt, node, Dimension.Type.HORIZONTAL)
