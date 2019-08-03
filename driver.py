@@ -313,10 +313,10 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 '''
 		else:
 			s += f'''
-	ctx->supply = devm_regulator_get(dev, "{p.regulator}");
+	ctx->supply = devm_regulator_get(dev, "{p.regulator[0]}");
 	if (IS_ERR(ctx->supply)) {{
 		ret = PTR_ERR(ctx->supply);
-		dev_err(dev, "Failed to get {p.regulator}-supply: %d\\n", ret);
+		dev_err(dev, "Failed to get {p.regulator[0]} regulator: %d\\n", ret);
 		return ret;
 	}}
 '''
