@@ -13,7 +13,7 @@
 from __future__ import annotations
 
 from enum import IntEnum, unique, Enum
-from typing import List, Optional
+from typing import List, Optional, Union, Tuple
 
 import wrap
 
@@ -28,6 +28,9 @@ def _get_params_hex(b: bytes) -> List[str]:
 
 def _get_params_int(size: int, byteorder: str):
 	def _get_params(b: bytes) -> List[str]:
+		if len(b) < size:
+			return [_hex_fill(int.from_bytes(b, byteorder=byteorder), size)]
+
 		itr = iter(b)
 		return [_hex_fill(int.from_bytes(t, byteorder=byteorder), size) for t in zip(*[itr] * size)]
 
@@ -91,21 +94,22 @@ class DCSCommand(Enum):
 	READ_MEMORY_CONTINUE = 0x3E,
 	SET_TEAR_SCANLINE = 0x44, 2, 'mipi_dsi_dcs_set_tear_scanline', _get_params_int(2, 'big')
 	GET_SCANLINE = 0x45,
-	SET_DISPLAY_BRIGHTNESS = 0x51, 2, 'mipi_dsi_dcs_set_display_brightness', _get_params_int(2, 'little')
+	SET_DISPLAY_BRIGHTNESS = 0x51, (1, 2), 'mipi_dsi_dcs_set_display_brightness', _get_params_int(2, 'little')
 	GET_DISPLAY_BRIGHTNESS = 0x52,
-	WRITE_CONTROL_DISPLAY = 0x53,
+	WRITE_CONTROL_DISPLAY = 0x53, 1,
 	GET_CONTROL_DISPLAY = 0x54,
-	WRITE_POWER_SAVE = 0x55,
+	WRITE_POWER_SAVE = 0x55, 1,
 	GET_POWER_SAVE = 0x56,
 	SET_CABC_MIN_BRIGHTNESS = 0x5E,
 	GET_CABC_MIN_BRIGHTNESS = 0x5F,
 	READ_DDB_START = 0xA1,
 	READ_DDB_CONTINUE = 0xA8,
 
-	def __new__(cls, value: int, nargs: int = None, method: str = None, _get_params=_get_params_hex) -> DCSCommand:
+	def __new__(cls, value: int, nargs: Union[int, Tuple[int]] = (), method: str = None,
+				_get_params=_get_params_hex) -> DCSCommand:
 		obj = object.__new__(cls)
 		obj._value_ = value
-		obj.nargs = nargs
+		obj.nargs = nargs if isinstance(nargs, tuple) else (nargs,)
 		obj.method = method
 		obj._get_params = _get_params
 		return obj
@@ -127,7 +131,10 @@ class DCSCommand(Enum):
 	def find(payload: bytes) -> Optional[DCSCommand]:
 		try:
 			dcs = DCSCommand(payload[0])
-			return dcs if len(payload) - 1 == dcs.nargs else None
+			if dcs.nargs and len(payload) - 1 not in dcs.nargs:
+				# Argument count does not match. Weird.
+				return None
+			return dcs
 		except ValueError:
 			return None
 
@@ -164,7 +171,7 @@ def _generate_dcs_write(t: Transaction, payload: bytes) -> str:
 
 	params = _get_params_hex(payload)
 	if dcs:
-		params[0] = dcs.name
+		params[0] = dcs.identifier
 	params.insert(0, 'dsi')
 
 	return wrap.join('\tdsi_dcs_write_seq(', ',', ');', params, force=2)
