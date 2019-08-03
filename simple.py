@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 from __future__ import annotations
 
+import wrap
 from panel import Panel
 
 
@@ -40,7 +41,7 @@ static const struct panel_desc_dsi {p.short_id} = {{
 			.height = {p.v.size},
 		}},
 	}},
-	.flags = {' | '.join(p.flags)},
+{wrap.join('	.flags = ', ' |', ',', p.flags)}
 	.format = {p.format},
 	.lanes = {p.lanes},
 }};

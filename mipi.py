@@ -15,23 +15,21 @@ from __future__ import annotations
 from enum import IntEnum, unique, Enum
 from typing import List, Optional
 
+import wrap
+
 
 def _hex_fill(i: int, size: int = 1) -> str:
 	return f'{i:#0{size * 2 + 2}x}'
-
-
-def _join_params(p: List[str]) -> str:
-	return ', ' + ', '.join(p) if p else ''
 
 
 def _get_params_hex(b: bytes) -> List[str]:
 	return [_hex_fill(i) for i in b]
 
 
-def _get_params_int(size: int, byteoder: str):
+def _get_params_int(size: int, byteorder: str):
 	def _get_params(b: bytes) -> List[str]:
 		itr = iter(b)
-		return [_hex_fill(int.from_bytes(t, byteorder=byteoder), size) for t in zip(*[itr] * size)]
+		return [_hex_fill(int.from_bytes(t, byteorder=byteorder), size) for t in zip(*[itr] * size)]
 
 	return _get_params
 
@@ -104,12 +102,12 @@ class DCSCommand(Enum):
 	READ_DDB_START = 0xA1,
 	READ_DDB_CONTINUE = 0xA8,
 
-	def __new__(cls, value: int, nargs: int = None, method: str = None, get_params=_get_params_hex) -> DCSCommand:
+	def __new__(cls, value: int, nargs: int = None, method: str = None, _get_params=_get_params_hex) -> DCSCommand:
 		obj = object.__new__(cls)
 		obj._value_ = value
 		obj.nargs = nargs
 		obj.method = method
-		obj.get_params = get_params
+		obj._get_params = _get_params
 		return obj
 
 	@property
@@ -120,6 +118,11 @@ class DCSCommand(Enum):
 	def description(self):
 		return self.name.lower().replace('_', ' ')
 
+	def get_params(self, b: bytes):
+		params = self._get_params(b)
+		params.insert(0, 'dsi')
+		return params
+
 	@staticmethod
 	def find(payload: bytes) -> Optional[DCSCommand]:
 		try:
@@ -129,9 +132,9 @@ class DCSCommand(Enum):
 			return None
 
 
-def _check_ret(expr: str, description: str) -> str:
+def _generate_checked_call(method: str, args: List[str], description: str) -> str:
 	return f'''\
-	ret = {expr};
+{wrap.join(f'	ret = {method}(', ',', ');', args)}
 	if (ret < 0) {{
 		dev_err(dev, "Failed to {description}: %d\\n", ret);
 		return ret;
@@ -147,7 +150,9 @@ MACROS = {
 
 def _generate_generic_write(t: Transaction, payload: bytes) -> str:
 	# TODO: Warn when downstream uses LONG_WRITE but mainline would use SHORT
-	return f'\tdsi_generic_write_seq(dsi' + _join_params(_get_params_hex(payload)) + ');'
+	params = _get_params_hex(payload)
+	params.insert(0, 'dsi')
+	return wrap.join('\tdsi_generic_write_seq(', ',', ');', params, force=2)
 
 
 def _generate_dcs_write(t: Transaction, payload: bytes) -> str:
@@ -155,20 +160,21 @@ def _generate_dcs_write(t: Transaction, payload: bytes) -> str:
 
 	dcs = DCSCommand.find(payload)
 	if dcs and dcs.method:
-		return _check_ret(dcs.method + '(dsi' + _join_params(dcs.get_params(payload[1:])) + ')', dcs.description)
+		return _generate_checked_call(dcs.method, dcs.get_params(payload[1:]), dcs.description)
 
-	args = _get_params_hex(payload)
+	params = _get_params_hex(payload)
 	if dcs:
-		args[0] = dcs.name
+		params[0] = dcs.name
+	params.insert(0, 'dsi')
 
-	return '\tdsi_dcs_write_seq(dsi' + _join_params(args) + ');'
+	return wrap.join('\tdsi_dcs_write_seq(', ',', ');', params, force=2)
 
 
 def _generate_peripheral(t: Transaction, payload: bytes) -> str:
 	if t == Transaction.TURN_ON_PERIPHERAL:
-		return _check_ret('mipi_dsi_turn_on_peripheral(dsi)', t.description)
+		return _generate_checked_call('mipi_dsi_turn_on_peripheral', ['dsi'], t.description)
 	elif t == Transaction.SHUTDOWN_PERIPHERAL:
-		return _check_ret('mipi_dsi_shutdown_peripheral(dsi)', t.description)
+		return _generate_checked_call('mipi_dsi_shutdown_peripheral', ['dsi'], t.description)
 	else:
 		raise ValueError(t)
 

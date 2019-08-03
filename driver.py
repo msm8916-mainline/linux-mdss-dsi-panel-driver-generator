@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import mipi
 import simple
+import wrap
 from panel import Panel, BacklightControl, CommandSequence
 
 
@@ -117,9 +118,9 @@ static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 
 	block = True
 	for c in cmd.seq:
-		if block or '\n' in c.generated:
+		if block or '{' in c.generated:
 			s += '\n'
-		block = '\n' in c.generated
+		block = '{' in c.generated
 
 		s += c.generated + '\n'
 		if c.wait:
@@ -355,7 +356,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 
 	dsi->lanes = {p.lanes};
 	dsi->format = {p.format};
-	dsi->mode_flags = {' | '.join(p.flags)};
+{wrap.join('	dsi->mode_flags = ', ' |', ';', p.flags)}
 
 	drm_panel_init(&ctx->panel);
 	ctx->panel.dev = dev;
