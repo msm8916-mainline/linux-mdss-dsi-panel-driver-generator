@@ -182,6 +182,13 @@ class Panel:
 		else:
 			raise ValueError(f'Unsupported bpp: {self.bpp} (TODO)')
 
+		# Sony </3
+		prop = fdt.getprop_or_none(node, 'somc,mdss-phy-size-mm')
+		if prop:
+			phy_size_mm = prop.as_uint32_array()
+			self.h.size = phy_size_mm[0]
+			self.v.size = phy_size_mm[1]
+
 	@staticmethod
 	def parse(fdt: Fdt2, node: int) -> Panel:
 		name = fdt.getprop_or_none(node, 'qcom,mdss-dsi-panel-name')
