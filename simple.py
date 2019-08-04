@@ -25,7 +25,8 @@ static const struct drm_display_mode {p.short_id}_mode = {{
 
 
 def generate_panel_simple(p: Panel) -> None:
-	with open(f'{p.id}/panel-simple-{p.short_id}.c', 'w') as f:
+	name = p.short_id.replace('_', '-')
+	with open(f'{p.id}/panel-simple-{name}.c', 'w') as f:
 		f.write(f'''\
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2013, The Linux Foundation. All rights reserved.
