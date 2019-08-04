@@ -113,14 +113,19 @@ def _remove_suffixes(text: str, *args: str) -> str:
 	return text
 
 
+def _remove_before(text: str, sub: str) -> str:
+	i = text.find(sub)
+	return text[i + 1:] if i >= 0 else text
+
+
 class Panel:
 	regulator: str = None
 
 	def __init__(self, name: str, fdt: Fdt2, node: int) -> None:
 		self.name = name
-		self.id = _remove_prefixes(fdt.get_name(node), 'qcom,mdss_dsi_', 'ss_dsi_panel_').lower()
+		self.id = _remove_before(_remove_prefixes(fdt.get_name(node), 'qcom,mdss_dsi_', 'ss_dsi_panel_').lower(), ',')
 		print(f'Parsing: {self.id} ({name})')
-		self.short_id = _remove_suffixes(self.id, '_video', '_vid', '_cmd',
+		self.short_id = _remove_suffixes(self.id, '_panel', '_video', '_vid', '_cmd',
 										 '_hd', '_qhd', '_720p', '_1080p', '_wvga', '_fwvga', '_qvga')
 		self.h = Dimension(fdt, node, Dimension.Type.HORIZONTAL)
 		self.v = Dimension(fdt, node, Dimension.Type.VERTICAL)
