@@ -331,16 +331,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	}
 '''
 
-	if p.backlight == BacklightControl.PWM:
-		s += '''
-	ctx->backlight = devm_of_find_backlight(dev);
-	if (IS_ERR(ctx->backlight)) {
-		ret = PTR_ERR(ctx->backlight);
-		dev_err(dev, "Failed to get backlight: %d\\n", ret);
-		return ret;
-	}
-'''
-	elif p.backlight == BacklightControl.DCS:
+	if p.backlight == BacklightControl.DCS:
 		s += f'''
 	ctx->backlight = {p.short_id}_create_backlight(dsi);
 	if (IS_ERR(ctx->backlight)) {{
@@ -348,6 +339,15 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 		dev_err(dev, "Failed to create backlight: %d\\n", ret);
 		return ret;
 	}}
+'''
+	else:
+		s += '''
+	ctx->backlight = devm_of_find_backlight(dev);
+	if (IS_ERR(ctx->backlight)) {
+		ret = PTR_ERR(ctx->backlight);
+		dev_err(dev, "Failed to get backlight: %d\\n", ret);
+		return ret;
+	}
 '''
 
 	s += f'''
