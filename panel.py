@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 from __future__ import annotations
 
+import itertools
 from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Iterator, List
@@ -82,6 +83,13 @@ class CommandSequence:
 		self.seq = []
 
 		itr = iter(fdt.getprop(node, f'qcom,mdss-dsi-{cmd}-command'))
+
+		if cmd == 'on':
+			# WHY SONY, WHY?????? Just put it in on-command...
+			init = fdt.getprop_or_none(node, 'somc,mdss-dsi-init-command')
+			if init:
+				itr = itertools.chain(init, itr)
+
 		for dtype in itr:
 			last, vc, ack, wait = next(itr), next(itr), next(itr), next(itr)
 			dlen = next(itr) << 8 | next(itr)
