@@ -73,6 +73,8 @@ class Command:
 
 
 class CommandSequence:
+	generated: str = ''
+
 	@unique
 	class State(Enum):
 		LP_MODE = 'dsi_lp_mode'

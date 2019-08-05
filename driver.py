@@ -23,6 +23,11 @@ def generate_includes(p: Panel) -> str:
 	if p.backlight:
 		includes.add('linux/backlight.h')
 
+	for cmd in p.cmds.values():
+		if 'MIPI_DCS_' in cmd.generated:
+			includes.add('video/mipi_display.h')
+			break
+
 	return '\n'.join(f'#include <{i}>' for i in sorted(includes))
 
 
@@ -58,16 +63,12 @@ def generate_struct(p: Panel) -> str:
 
 
 def generate_macros(p: Panel) -> str:
-	# Generate command sequences early
 	macros = set()
 	for cmd in p.cmds.values():
-		for c in cmd.seq:
-			c.generated = c.type.generate(c.payload)
-
-			# Check which macros are necessary
-			for macro in mipi.MACROS.keys():
-				if macro in c.generated:
-					macros.add(macro)
+		# Check which macros are necessary
+		for macro in mipi.MACROS.keys():
+			if macro in cmd.generated:
+				macros.add(macro)
 
 	s = ''
 	for macro, expr in mipi.MACROS.items():
@@ -383,6 +384,12 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 
 
 def generate_driver(p: Panel) -> None:
+	# Generate command sequences early
+	for cmd in p.cmds.values():
+		for c in cmd.seq:
+			c.generated = c.type.generate(c.payload)
+			cmd.generated += c.generated
+
 	module = f"panel-{p.short_id.replace('_', '-')}"
 	with open(f'{p.id}/{module}.c', 'w') as f:
 		f.write(f'''\
