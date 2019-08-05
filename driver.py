@@ -102,7 +102,7 @@ def generate_reset(p: Panel) -> str:
 	return s
 
 
-def generate_commands(p: Panel, cmd_name: str) -> str:
+def generate_commands(p: Panel, options: Options, cmd_name: str) -> str:
 	s = f'''\
 static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 {{
@@ -125,7 +125,7 @@ static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 		block = '{' in c.generated
 
 		s += c.generated + '\n'
-		if c.wait:
+		if c.wait and c.wait > options.ignore_wait:
 			s += f'\tmsleep({c.wait});\n'
 
 	s += '''
@@ -406,8 +406,8 @@ static inline struct {p.short_id} *to_{p.short_id}(struct drm_panel *panel)
 	return container_of(panel, struct {p.short_id}, panel);
 }}{generate_macros(p)}
 {generate_reset(p)}
-{generate_commands(p, 'on')}
-{generate_commands(p, 'off')}
+{generate_commands(p, options, 'on')}
+{generate_commands(p, options, 'off')}
 {generate_prepare(p, options)}
 {generate_unprepare(p, options)}
 static int {p.short_id}_enable(struct drm_panel *panel)

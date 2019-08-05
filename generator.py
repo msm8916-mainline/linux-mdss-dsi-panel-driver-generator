@@ -9,3 +9,4 @@ from typing import List, Optional, TextIO
 class Options:
 	dtb: List[TextIO]
 	regulator: Optional[List[str]]
+	ignore_wait: int
