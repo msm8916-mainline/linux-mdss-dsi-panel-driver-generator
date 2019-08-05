@@ -3,13 +3,14 @@ import argparse
 import os
 import shutil
 
+import generator
 from driver import generate_driver
 from fdt2 import Fdt2
 from panel import Panel
 from simple import generate_panel_simple
 
 
-def generate(p: Panel) -> None:
+def generate(p: Panel, options: generator.Options) -> None:
 	print(f"Generating: {p.id} ({p.name})")
 
 	if os.path.exists(p.id):
@@ -17,17 +18,17 @@ def generate(p: Panel) -> None:
 	os.mkdir(p.id)
 
 	generate_panel_simple(p)
-	generate_driver(p)
+	generate_driver(p, options)
 
 
 parser = argparse.ArgumentParser(
 	description="Generate Linux DRM panel driver based on (downstream) MDSS DSI device tree")
 parser.add_argument('dtb', nargs='+', type=argparse.FileType('rb'), help="Device tree blobs to parse")
-parser.add_argument('-r', '--regulator', nargs='*', help="Enable panel power supply through regulator")
-args = parser.parse_args()
-
-if args.regulator == []:
-	args.regulator = ['power']
+parser.add_argument('-r', '--regulator', action='append', nargs='?', const='power', help="""
+	Enable one or multiple regulators with the specified name in the generated panel driver.
+	Some panels require additional power supplies to be enabled to work properly.
+""")
+args = parser.parse_args(namespace=generator.Options())
 
 for f in args.dtb:
 	with f:
@@ -37,8 +38,7 @@ for f in args.dtb:
 		found = False
 		for panel in Panel.find(fdt):
 			found = True
-			panel.regulator = args.regulator
-			generate(panel)
+			generate(panel, args)
 
 		if not found:
 			print(f"{f.name} does not contain any panel specifications")

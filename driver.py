@@ -4,10 +4,11 @@ from __future__ import annotations
 import mipi
 import simple
 import wrap
+from generator import Options
 from panel import Panel, BacklightControl, CommandSequence
 
 
-def generate_includes(p: Panel) -> str:
+def generate_includes(p: Panel, options: Options) -> str:
 	includes = {
 		'drm/drm_mipi_dsi.h',
 		'drm/drm_modes.h',
@@ -18,7 +19,7 @@ def generate_includes(p: Panel) -> str:
 
 	if p.reset_seq:
 		includes.add('linux/gpio/consumer.h')
-	if p.regulator:
+	if options.regulator:
 		includes.add('linux/regulator/consumer.h')
 	if p.backlight:
 		includes.add('linux/backlight.h')
@@ -31,7 +32,7 @@ def generate_includes(p: Panel) -> str:
 	return '\n'.join(f'#include <{i}>' for i in sorted(includes))
 
 
-def generate_struct(p: Panel) -> str:
+def generate_struct(p: Panel, options: Options) -> str:
 	variables = [
 		'struct drm_panel panel;',
 		'struct mipi_dsi_device *dsi;',
@@ -39,9 +40,9 @@ def generate_struct(p: Panel) -> str:
 
 	if p.backlight:
 		variables.append('struct backlight_device *backlight;')
-	if p.regulator:
-		if len(p.regulator) > 1:
-			variables.append(f'struct regulator_bulk_data supplies[{len(p.regulator)}];')
+	if options.regulator:
+		if len(options.regulator) > 1:
+			variables.append(f'struct regulator_bulk_data supplies[{len(options.regulator)}];')
 		else:
 			variables.append('struct regulator *supply;')
 	if p.reset_seq:
@@ -134,12 +135,12 @@ static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 	return s
 
 
-def generate_cleanup(p: Panel, indent: int = 1) -> str:
+def generate_cleanup(p: Panel, options: Options, indent: int = 1) -> str:
 	cleanup = []
 	if p.reset_seq:
 		cleanup.append('gpiod_set_value_cansleep(ctx->reset_gpio, 0);')
-	if p.regulator:
-		if len(p.regulator) > 1:
+	if options.regulator:
+		if len(options.regulator) > 1:
 			cleanup.append('regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);')
 		else:
 			cleanup.append('regulator_disable(ctx->supply);')
@@ -151,7 +152,7 @@ def generate_cleanup(p: Panel, indent: int = 1) -> str:
 		return ''
 
 
-def generate_prepare(p: Panel) -> str:
+def generate_prepare(p: Panel, options: Options) -> str:
 	s = f'''\
 static int {p.short_id}_prepare(struct drm_panel *panel)
 {{
@@ -163,8 +164,8 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 		return 0;
 '''
 
-	if p.regulator:
-		if len(p.regulator) > 1:
+	if options.regulator:
+		if len(options.regulator) > 1:
 			s += '''
 	ret = regulator_bulk_enable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
 	if (ret < 0) {
@@ -187,7 +188,7 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 	s += f'''
 	ret = {p.short_id}_on(ctx);
 	if (ret < 0) {{
-		dev_err(dev, "Failed to initialize panel: %d\\n", ret);{generate_cleanup(p, 2)}
+		dev_err(dev, "Failed to initialize panel: %d\\n", ret);{generate_cleanup(p, options, 2)}
 		return ret;
 	}}
 
@@ -198,7 +199,7 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 	return s
 
 
-def generate_unprepare(p: Panel) -> str:
+def generate_unprepare(p: Panel, options: Options) -> str:
 	return f'''\
 static int {p.short_id}_unprepare(struct drm_panel *panel)
 {{
@@ -212,7 +213,7 @@ static int {p.short_id}_unprepare(struct drm_panel *panel)
 	ret = {p.short_id}_off(ctx);
 	if (ret < 0)
 		dev_err(dev, "Failed to un-initialize panel: %d\\n", ret);
-{generate_cleanup(p)}
+{generate_cleanup(p, options)}
 
 	ctx->prepared = false;
 	return 0;
@@ -286,7 +287,7 @@ static struct backlight_device *
 	return s
 
 
-def generate_probe(p: Panel) -> str:
+def generate_probe(p: Panel, options: Options) -> str:
 	s = f'''\
 static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 {{
@@ -299,10 +300,10 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 		return -ENOMEM;
 '''
 
-	if p.regulator:
-		if len(p.regulator) > 1:
+	if options.regulator:
+		if len(options.regulator) > 1:
 			i = 0
-			for i, r in enumerate(p.regulator):
+			for i, r in enumerate(options.regulator):
 				s += f'\n\tctx->supplies[{i}].supply = "{r}";'
 			s += f'''
 	ret = devm_regulator_bulk_get(dev, ARRAY_SIZE(ctx->supplies),
@@ -314,10 +315,10 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 '''
 		else:
 			s += f'''
-	ctx->supply = devm_regulator_get(dev, "{p.regulator[0]}");
+	ctx->supply = devm_regulator_get(dev, "{options.regulator[0]}");
 	if (IS_ERR(ctx->supply)) {{
 		ret = PTR_ERR(ctx->supply);
-		dev_err(dev, "Failed to get {p.regulator[0]} regulator: %d\\n", ret);
+		dev_err(dev, "Failed to get {options.regulator[0]} regulator: %d\\n", ret);
 		return ret;
 	}}
 '''
@@ -383,7 +384,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	return s
 
 
-def generate_driver(p: Panel) -> None:
+def generate_driver(p: Panel, options: Options) -> None:
 	# Generate command sequences early
 	for cmd in p.cmds.values():
 		for c in cmd.seq:
@@ -396,9 +397,9 @@ def generate_driver(p: Panel) -> None:
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2013, The Linux Foundation. All rights reserved.
 
-{generate_includes(p)}
+{generate_includes(p, options)}
 
-{generate_struct(p)}
+{generate_struct(p, options)}
 
 static inline struct {p.short_id} *to_{p.short_id}(struct drm_panel *panel)
 {{
@@ -407,8 +408,8 @@ static inline struct {p.short_id} *to_{p.short_id}(struct drm_panel *panel)
 {generate_reset(p)}
 {generate_commands(p, 'on')}
 {generate_commands(p, 'off')}
-{generate_prepare(p)}
-{generate_unprepare(p)}
+{generate_prepare(p, options)}
+{generate_unprepare(p, options)}
 static int {p.short_id}_enable(struct drm_panel *panel)
 {{
 	struct {p.short_id} *ctx = to_{p.short_id}(panel);
@@ -472,7 +473,7 @@ static const struct drm_panel_funcs {p.short_id}_panel_funcs = {{
 	.get_modes = {p.short_id}_get_modes,
 }};
 
-{generate_backlight(p)}{generate_probe(p)}
+{generate_backlight(p)}{generate_probe(p, options)}
 static int {p.short_id}_remove(struct mipi_dsi_device *dsi)
 {{
 	struct {p.short_id} *ctx = mipi_dsi_get_drvdata(dsi);

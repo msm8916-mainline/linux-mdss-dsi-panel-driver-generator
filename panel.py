@@ -129,8 +129,6 @@ def _remove_before(text: str, sub: str) -> str:
 
 
 class Panel:
-	regulator: str = None
-
 	def __init__(self, name: str, fdt: Fdt2, node: int) -> None:
 		self.name = name
 		self.id = _remove_before(_remove_prefixes(fdt.get_name(node), 'qcom,mdss_dsi_', 'ss_dsi_panel_').lower(), ',')
