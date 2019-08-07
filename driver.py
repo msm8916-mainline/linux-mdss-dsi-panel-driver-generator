@@ -88,6 +88,19 @@ def generate_macros(p: Panel) -> str:
 	return s
 
 
+# msleep(< 20) will possibly sleep up to 20ms
+# In this case, usleep_range should be used
+def msleep(m: int) -> str:
+	if m >= 20:
+		return f"msleep({m})"
+	else:
+		# It's hard to say what a good range would be...
+		# Downstream uses usleep_range(m * 1000, m * 1000) but that doesn't quite sound great
+		# Sleep for up to 1ms longer for now
+		u = m * 1000
+		return f"usleep_range({u}, {u + 1000})"
+
+
 def generate_reset(p: Panel) -> str:
 	if not p.reset_seq:
 		return ''
@@ -96,7 +109,7 @@ def generate_reset(p: Panel) -> str:
 	for state, sleep in p.reset_seq:
 		s += f'\tgpiod_set_value_cansleep(ctx->reset_gpio, {state});\n'
 		if sleep:
-			s += f'\tmsleep({sleep});\n'
+			s += f'\t{msleep(sleep)};\n'
 	s += '}\n'
 
 	return s
@@ -126,7 +139,7 @@ static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 
 		s += c.generated + '\n'
 		if c.wait and c.wait > options.ignore_wait:
-			s += f'\tmsleep({c.wait});\n'
+			s += f'\t{msleep(c.wait)};\n'
 
 	s += '''
 	return 0;
