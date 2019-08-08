@@ -15,6 +15,7 @@ def generate_includes(p: Panel, options: Options) -> str:
 		'drm/drm_panel.h',
 		'linux/module.h',
 		'linux/delay.h'
+		'linux/of.h'
 	}
 
 	if p.reset_seq:
