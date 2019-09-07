@@ -4,7 +4,9 @@ from __future__ import annotations
 import itertools
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Iterator, List
+from typing import Iterator, List, Optional
+
+import libfdt
 
 import mipi
 from fdt2 import Fdt2
@@ -24,8 +26,8 @@ class Mode(Enum):
 
 @unique
 class TrafficMode(Enum):
-	SYNC_EVENT = 'non_burst_sync_event', []
 	SYNC_PULSE = 'non_burst_sync_pulse', ['MIPI_DSI_MODE_VIDEO_SYNC_PULSE']
+	SYNC_EVENT = 'non_burst_sync_event', []
 	BURST_MODE = 'burst_mode', ['MIPI_DSI_MODE_VIDEO_BURST']
 
 	def __new__(cls, value: str, flags: List[str]) -> TrafficMode:
@@ -34,6 +36,24 @@ class TrafficMode(Enum):
 		obj.flags = flags
 		return obj
 
+	@staticmethod
+	def parse(prop: libfdt.Property) -> Optional[TrafficMode]:
+		if prop[-1] == 0:  # Null terminated string
+			return TrafficMode(prop.as_str())
+
+		print(f"WARNING: qcom,mdss-dsi-traffic-mode is not a null terminated string:", prop)
+
+		# Some Samsung panels have the traffic mode as index for some reason
+		if len(prop) == 4:
+			i = prop.as_uint32()
+			traffic_modes = list(TrafficMode.__members__.values())
+			if i < len(traffic_modes):
+				print(f"Interpreting qcom,mdss-dsi-traffic-mode as numeric index: {i} == {traffic_modes[i]}")
+				return traffic_modes[i]
+
+		# Use the default in mdss_dsi_panel.c
+		print("Falling back to MIPI_DSI_MODE_VIDEO_SYNC_PULSE")
+		return TrafficMode.SYNC_PULSE
 
 @unique
 class BacklightControl(Enum):
@@ -142,7 +162,7 @@ class Panel:
 		self.framerate = fdt.getprop(node, 'qcom,mdss-dsi-panel-framerate').as_int32()
 		self.bpp = fdt.getprop(node, 'qcom,mdss-dsi-bpp').as_int32()
 		self.mode = Mode(fdt.getprop(node, 'qcom,mdss-dsi-panel-type').as_str())
-		self.traffic_mode = TrafficMode(fdt.getprop(node, 'qcom,mdss-dsi-traffic-mode').as_str())
+		self.traffic_mode = TrafficMode.parse(fdt.getprop(node, 'qcom,mdss-dsi-traffic-mode'))
 		backlight = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bl-pmic-control-type')
 		self.backlight = BacklightControl(backlight.as_str()) if backlight else None
 		self.max_brightness = fdt.getprop_int32(node, 'qcom,mdss-dsi-bl-max-level', None)
