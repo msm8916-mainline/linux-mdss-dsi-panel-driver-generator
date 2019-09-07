@@ -134,7 +134,8 @@ class Panel:
 		self.id = _remove_before(_remove_prefixes(fdt.get_name(node), 'qcom,mdss_dsi_', 'ss_dsi_panel_').lower(), ',')
 		print(f'Parsing: {self.id} ({name})')
 		self.short_id = _remove_suffixes(self.id, '_panel', '_video', '_vid', '_cmd',
-										 '_hd', '_qhd', '_720p', '_1080p', '_wvga', '_fwvga', '_qvga')
+										 '_hd', '_qhd', '_720p', '_1080p',
+										 '_wvga', '_fwvga', '_qvga', '_xga', '_wxga')
 		self.h = Dimension(fdt, node, Dimension.Type.HORIZONTAL)
 		self.v = Dimension(fdt, node, Dimension.Type.VERTICAL)
 		self.framerate = fdt.getprop(node, 'qcom,mdss-dsi-panel-framerate').as_int32()
