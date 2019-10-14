@@ -244,11 +244,33 @@ def generate_backlight(p: Panel) -> str:
 		brightness_mask = ''
 
 	s = f'''\
-static int dsi_dcs_bl_get_brightness(struct backlight_device *bl)
+static int {p.short_id}_bl_update_status(struct backlight_device *bl)
 {{
 	struct mipi_dsi_device *dsi = bl_get_data(bl);
-	int ret;
 	u16 brightness = bl->props.brightness;
+	int ret;
+
+	if (bl->props.power != FB_BLANK_UNBLANK ||
+	    bl->props.fb_blank != FB_BLANK_UNBLANK ||
+	    bl->props.state & (BL_CORE_SUSPENDED | BL_CORE_FBBLANK))
+		brightness = 0;
+
+	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
+
+	ret = mipi_dsi_dcs_set_display_brightness(dsi, brightness);
+	if (ret < 0)
+		return ret;
+
+	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+
+	return 0;
+}}
+
+static int {p.short_id}_bl_get_brightness(struct backlight_device *bl)
+{{
+	struct mipi_dsi_device *dsi = bl_get_data(bl);
+	u16 brightness = bl->props.brightness;
+	int ret;
 
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
@@ -260,43 +282,25 @@ static int dsi_dcs_bl_get_brightness(struct backlight_device *bl)
 
 	return brightness{brightness_mask};
 }}
-'''
-	s += '''
-static int dsi_dcs_bl_update_status(struct backlight_device *bl)
-{
-	struct mipi_dsi_device *dsi = bl_get_data(bl);
-	int ret;
 
-	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
-
-	ret = mipi_dsi_dcs_set_display_brightness(dsi, bl->props.brightness);
-	if (ret < 0)
-		return ret;
-
-	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
-
-	return 0;
-}
-
-static const struct backlight_ops dsi_bl_ops = {
-	.update_status = dsi_dcs_bl_update_status,
-	.get_brightness = dsi_dcs_bl_get_brightness,
-};
+static const struct backlight_ops {p.short_id}_bl_ops = {{
+	.update_status = {p.short_id}_bl_update_status,
+	.get_brightness = {p.short_id}_bl_get_brightness,
+}};
 '''
 	s += f'''
 static struct backlight_device *
 {p.short_id}_create_backlight(struct mipi_dsi_device *dsi)
 {{
 	struct device *dev = &dsi->dev;
-	struct backlight_properties props;
-
-	memset(&props, 0, sizeof(props));
-	props.type = BACKLIGHT_RAW;
-	props.brightness = {p.max_brightness or 255};
-	props.max_brightness = {p.max_brightness or 255};
+	struct backlight_properties props = {{
+		.type = BACKLIGHT_RAW,
+		.brightness = {p.max_brightness or 255},
+		.max_brightness = {p.max_brightness or 255},
+	}};
 
 	return devm_backlight_device_register(dev, dev_name(dev), dev, dsi,
-					      &dsi_bl_ops, &props);
+					      &{p.short_id}_bl_ops, &props);
 }}
 
 '''
