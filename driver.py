@@ -239,12 +239,13 @@ def generate_backlight(p: Panel) -> str:
 	if p.backlight != BacklightControl.DCS:
 		return ''
 
+	brightness_mask = ' & 0xff'
 	if p.max_brightness > 255:
-		raise ValueError(f"Max brightness {p.max_brightness} > 255 is not supported yet")
+		brightness_mask = ''
 
-	s = '''\
+	s = f'''\
 static int dsi_dcs_bl_get_brightness(struct backlight_device *bl)
-{
+{{
 	struct mipi_dsi_device *dsi = bl_get_data(bl);
 	int ret;
 	u16 brightness = bl->props.brightness;
@@ -257,9 +258,10 @@ static int dsi_dcs_bl_get_brightness(struct backlight_device *bl)
 
 	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
 
-	return brightness & 0xff;
-}
-
+	return brightness{brightness_mask};
+}}
+'''
+	s += '''
 static int dsi_dcs_bl_update_status(struct backlight_device *bl)
 {
 	struct mipi_dsi_device *dsi = bl_get_data(bl);
