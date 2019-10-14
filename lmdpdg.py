@@ -28,6 +28,9 @@ parser.add_argument('-r', '--regulator', action='append', nargs='?', const='powe
 	Enable one or multiple regulators with the specified name in the generated panel driver.
 	Some panels require additional power supplies to be enabled to work properly.
 """)
+parser.add_argument('--backlight-gpio', action='store_true', help="""
+	Enable/disable backlight with an extra GPIO (works only for MIPI DCS backlight)
+""")
 parser.add_argument('--ignore-wait', type=int, default=0, help="""
 	Ignore wait in command sequences that is smaller that the specified value.
 	Some device trees add a useless 1ms wait after each command, making the driver

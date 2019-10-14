@@ -46,8 +46,7 @@ def generate_struct(p: Panel, options: Options) -> str:
 			variables.append(f'struct regulator_bulk_data supplies[{len(options.regulator)}];')
 		else:
 			variables.append('struct regulator *supply;')
-	if p.reset_seq:
-		variables.append('struct gpio_desc *reset_gpio;')
+	variables += [f'struct gpio_desc *{name}_gpio;' for name in options.gpios]
 
 	variables += [
 		'',
@@ -235,7 +234,7 @@ static int {p.short_id}_unprepare(struct drm_panel *panel)
 '''
 
 
-def generate_backlight(p: Panel) -> str:
+def generate_backlight(p: Panel, options: Options) -> str:
 	if p.backlight != BacklightControl.DCS:
 		return ''
 
@@ -247,6 +246,11 @@ def generate_backlight(p: Panel) -> str:
 static int {p.short_id}_bl_update_status(struct backlight_device *bl)
 {{
 	struct mipi_dsi_device *dsi = bl_get_data(bl);
+'''
+	if options.backlight_gpio:
+		s += f'\tstruct {p.short_id} *ctx = mipi_dsi_get_drvdata(dsi);\n'
+
+	s += '''\
 	u16 brightness = bl->props.brightness;
 	int ret;
 
@@ -254,7 +258,14 @@ static int {p.short_id}_bl_update_status(struct backlight_device *bl)
 	    bl->props.fb_blank != FB_BLANK_UNBLANK ||
 	    bl->props.state & (BL_CORE_SUSPENDED | BL_CORE_FBBLANK))
 		brightness = 0;
+'''
 
+	if options.backlight_gpio:
+		s += '''
+	gpiod_set_value_cansleep(ctx->backlight_gpio, !!brightness);
+'''
+
+	s += f'''
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
 	ret = mipi_dsi_dcs_set_display_brightness(dsi, brightness);
@@ -343,14 +354,14 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	}}
 '''
 
-	if p.reset_seq:
-		s += '''
-	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_LOW);
-	if (IS_ERR(ctx->reset_gpio)) {
-		ret = PTR_ERR(ctx->reset_gpio);
-		dev_err(dev, "Failed to get reset-gpios: %d\\n", ret);
+	for name in options.gpios:
+		s += f'''
+	ctx->{name}_gpio = devm_gpiod_get(dev, "{name}", GPIOD_OUT_LOW);
+	if (IS_ERR(ctx->{name}_gpio)) {{
+		ret = PTR_ERR(ctx->{name}_gpio);
+		dev_err(dev, "Failed to get {name}-gpios: %d\\n", ret);
 		return ret;
-	}
+	}}
 '''
 
 	if p.backlight == BacklightControl.DCS:
@@ -410,6 +421,12 @@ def generate_driver(p: Panel, options: Options) -> None:
 		for c in cmd.seq:
 			c.generated = c.type.generate(c.payload)
 			cmd.generated += c.generated
+
+	options.gpios = []
+	if p.reset_seq:
+		options.gpios.append('reset')
+	if options.backlight_gpio:
+		options.gpios.append('backlight')
 
 	module = f"panel-{p.short_id.replace('_', '-')}"
 	with open(f'{p.id}/{module}.c', 'w') as f:
@@ -493,7 +510,7 @@ static const struct drm_panel_funcs {p.short_id}_panel_funcs = {{
 	.get_modes = {p.short_id}_get_modes,
 }};
 
-{generate_backlight(p)}{generate_probe(p, options)}
+{generate_backlight(p, options)}{generate_probe(p, options)}
 static int {p.short_id}_remove(struct mipi_dsi_device *dsi)
 {{
 	struct {p.short_id} *ctx = mipi_dsi_get_drvdata(dsi);
