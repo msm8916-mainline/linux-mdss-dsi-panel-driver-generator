@@ -84,7 +84,11 @@ class CommandSequence:
 		self.state = CommandSequence.State(fdt.getprop(node, f'qcom,mdss-dsi-{cmd}-command-state').as_str())
 		self.seq = []
 
-		itr = iter(fdt.getprop(node, f'qcom,mdss-dsi-{cmd}-command'))
+		prop = fdt.getprop_or_none(node, f'qcom,mdss-dsi-{cmd}-command')
+		if prop is None:
+			print(f'Warning: qcom,mdss-dsi-{cmd}-command does not exist')
+			return  # No commands
+		itr = iter(prop)
 
 		if cmd == 'on':
 			# WHY SONY, WHY?????? Just put it in on-command...
