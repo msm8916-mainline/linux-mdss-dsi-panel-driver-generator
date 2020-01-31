@@ -10,27 +10,41 @@ from panel import Panel, BacklightControl, CommandSequence
 
 def generate_includes(p: Panel, options: Options) -> str:
 	includes = {
-		'drm/drm_mipi_dsi.h',
-		'drm/drm_modes.h',
-		'drm/drm_panel.h',
-		'linux/module.h',
-		'linux/delay.h',
-		'linux/of.h',
+		'linux': {
+			'module.h',
+			'delay.h',
+			'of.h',
+		},
+		'video': set(),
+		'drm': {
+			'drm_mipi_dsi.h',
+			'drm_modes.h',
+			'drm_panel.h',
+		},
 	}
 
 	if p.reset_seq:
-		includes.add('linux/gpio/consumer.h')
+		includes['linux'].add('gpio/consumer.h')
 	if options.regulator:
-		includes.add('linux/regulator/consumer.h')
+		includes['linux'].add('regulator/consumer.h')
 	if p.backlight:
-		includes.add('linux/backlight.h')
+		includes['linux'].add('backlight.h')
 
 	for cmd in p.cmds.values():
 		if 'MIPI_DCS_' in cmd.generated:
-			includes.add('video/mipi_display.h')
+			includes['video'].add('mipi_display.h')
 			break
 
-	return '\n'.join(f'#include <{i}>' for i in sorted(includes))
+	lines = []
+	for group, headers in includes.items():
+		if not headers:
+			continue
+
+		lines.append('')
+		for header in sorted(headers):
+			lines.append(f'#include <{group}/{header}>')
+
+	return '\n'.join(lines)
 
 
 def generate_struct(p: Panel, options: Options) -> str:
@@ -433,7 +447,6 @@ def generate_driver(p: Panel, options: Options) -> None:
 		f.write(f'''\
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2013, The Linux Foundation. All rights reserved.
-
 {generate_includes(p, options)}
 
 {generate_struct(p, options)}
