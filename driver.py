@@ -540,7 +540,7 @@ static int {p.short_id}_remove(struct mipi_dsi_device *dsi)
 
 static const struct of_device_id {p.short_id}_of_match[] = {{
 	{{ .compatible = "mdss,{p.short_id}" }}, // FIXME
-	{{ }}
+	{{ /* sentinel */ }}
 }};
 MODULE_DEVICE_TABLE(of, {p.short_id}_of_match);
 
