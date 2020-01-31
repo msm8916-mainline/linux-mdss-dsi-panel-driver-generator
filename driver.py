@@ -405,9 +405,8 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	dsi->format = {p.format};
 {wrap.join('	dsi->mode_flags = ', ' |', ';', p.flags)}
 
-	drm_panel_init(&ctx->panel);
-	ctx->panel.dev = dev;
-	ctx->panel.funcs = &{p.short_id}_panel_funcs;
+	drm_panel_init(&ctx->panel, dev, &{p.short_id}_panel_funcs,
+		       DRM_MODE_CONNECTOR_DSI);
 '''
 
 	s += '''
