@@ -496,20 +496,20 @@ static int {p.short_id}_disable(struct drm_panel *panel)
 }}
 
 {simple.generate_mode(p)}
-static int {p.short_id}_get_modes(struct drm_panel *panel)
+{wrap.join(f'static int {p.short_id}_get_modes(', ',', ')', ['struct drm_panel *panel', 'struct drm_connector *connector'])}
 {{
 	struct drm_display_mode *mode;
 
-	mode = drm_mode_duplicate(panel->drm, &{p.short_id}_mode);
+	mode = drm_mode_duplicate(connector->dev, &{p.short_id}_mode);
 	if (!mode)
 		return -ENOMEM;
 
 	drm_mode_set_name(mode);
 
 	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
-	panel->connector->display_info.width_mm = mode->width_mm;
-	panel->connector->display_info.height_mm = mode->height_mm;
-	drm_mode_probed_add(panel->connector, mode);
+	connector->display_info.width_mm = mode->width_mm;
+	connector->display_info.height_mm = mode->height_mm;
+	drm_mode_probed_add(connector, mode);
 
 	return 1;
 }}
