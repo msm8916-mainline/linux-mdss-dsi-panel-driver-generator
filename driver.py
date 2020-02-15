@@ -442,7 +442,7 @@ def generate_driver(p: Panel, options: Options) -> None:
 
 {generate_struct(p, options)}
 
-static inline struct {p.short_id} *to_{p.short_id}(struct drm_panel *panel)
+{wrap.simple([f'static inline', f'struct {p.short_id} *to_{p.short_id}(struct drm_panel *panel)'])}
 {{
 	return container_of(panel, struct {p.short_id}, panel);
 }}{generate_macros(p)}
