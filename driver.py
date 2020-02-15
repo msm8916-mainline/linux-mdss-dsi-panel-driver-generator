@@ -27,7 +27,7 @@ def generate_includes(p: Panel, options: Options) -> str:
 		includes['linux'].add('gpio/consumer.h')
 	if options.regulator:
 		includes['linux'].add('regulator/consumer.h')
-	if p.backlight:
+	if p.backlight == BacklightControl.DCS:
 		includes['linux'].add('backlight.h')
 
 	for cmd in p.cmds.values():
@@ -49,30 +49,23 @@ def generate_includes(p: Panel, options: Options) -> str:
 
 def generate_struct(p: Panel, options: Options) -> str:
 	variables = [
-		'struct drm_panel panel;',
-		'struct mipi_dsi_device *dsi;',
+		'struct drm_panel panel',
+		'struct mipi_dsi_device *dsi',
 	]
 
-	if p.backlight:
-		variables.append('struct backlight_device *backlight;')
 	if options.regulator:
 		if len(options.regulator) > 1:
-			variables.append(f'struct regulator_bulk_data supplies[{len(options.regulator)}];')
+			variables.append(f'struct regulator_bulk_data supplies[{len(options.regulator)}]')
 		else:
-			variables.append('struct regulator *supply;')
-	variables += [f'struct gpio_desc *{name}_gpio;' for name in options.gpios]
-
-	variables += [
-		'',
-		'bool prepared;',
-		'bool enabled;'
-	]
+			variables.append('struct regulator *supply')
+	variables += [f'struct gpio_desc *{name}_gpio' for name in options.gpios]
+	variables.append('bool prepared')
 
 	s = f'struct {p.short_id} {{'
 	for v in variables:
 		s += '\n'
 		if v:
-			s += '\t' + v
+			s += '\t' + v + ';'
 	s += '\n};'
 	return s
 
@@ -378,25 +371,6 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	}}
 '''
 
-	if p.backlight == BacklightControl.DCS:
-		s += f'''
-	ctx->backlight = {p.short_id}_create_backlight(dsi);
-	if (IS_ERR(ctx->backlight)) {{
-		ret = PTR_ERR(ctx->backlight);
-		dev_err(dev, "Failed to create backlight: %d\\n", ret);
-		return ret;
-	}}
-'''
-	else:
-		s += '''
-	ctx->backlight = devm_of_find_backlight(dev);
-	if (IS_ERR(ctx->backlight)) {
-		ret = PTR_ERR(ctx->backlight);
-		dev_err(dev, "Failed to get backlight: %d\\n", ret);
-		return ret;
-	}
-'''
-
 	s += f'''
 	ctx->dsi = dsi;
 	mipi_dsi_set_drvdata(dsi, ctx);
@@ -407,6 +381,24 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 
 	drm_panel_init(&ctx->panel, dev, &{p.short_id}_panel_funcs,
 		       DRM_MODE_CONNECTOR_DSI);
+'''
+
+	if p.backlight == BacklightControl.DCS:
+		s += f'''
+	ctx->panel.backlight = {p.short_id}_create_backlight(dsi);
+	if (IS_ERR(ctx->panel.backlight)) {{
+		ret = PTR_ERR(ctx->panel.backlight);
+		dev_err(dev, "Failed to create backlight: %d\\n", ret);
+		return ret;
+	}}
+'''
+	else:
+		s += '''
+	ret = drm_panel_of_backlight(&ctx->panel);
+	if (ret) {
+		dev_err(dev, "Failed to get backlight: %d\\n", ret);
+		return ret;
+	}
 '''
 
 	s += '''
@@ -459,42 +451,6 @@ static inline struct {p.short_id} *to_{p.short_id}(struct drm_panel *panel)
 {generate_commands(p, options, 'off')}
 {generate_prepare(p, options)}
 {generate_unprepare(p, options)}
-static int {p.short_id}_enable(struct drm_panel *panel)
-{{
-	struct {p.short_id} *ctx = to_{p.short_id}(panel);
-	int ret;
-
-	if (ctx->enabled)
-		return 0;
-
-	ret = backlight_enable(ctx->backlight);
-	if (ret < 0) {{
-		dev_err(&ctx->dsi->dev, "Failed to enable backlight: %d\\n", ret);
-		return ret;
-	}}
-
-	ctx->enabled = true;
-	return 0;
-}}
-
-static int {p.short_id}_disable(struct drm_panel *panel)
-{{
-	struct {p.short_id} *ctx = to_{p.short_id}(panel);
-	int ret;
-
-	if (!ctx->enabled)
-		return 0;
-
-	ret = backlight_disable(ctx->backlight);
-	if (ret < 0) {{
-		dev_err(&ctx->dsi->dev, "Failed to disable backlight: %d\\n", ret);
-		return ret;
-	}}
-
-	ctx->enabled = false;
-	return 0;
-}}
-
 {simple.generate_mode(p)}
 {wrap.join(f'static int {p.short_id}_get_modes(', ',', ')', ['struct drm_panel *panel', 'struct drm_connector *connector'])}
 {{
@@ -515,10 +471,8 @@ static int {p.short_id}_disable(struct drm_panel *panel)
 }}
 
 static const struct drm_panel_funcs {p.short_id}_panel_funcs = {{
-	.disable = {p.short_id}_disable,
-	.unprepare = {p.short_id}_unprepare,
 	.prepare = {p.short_id}_prepare,
-	.enable = {p.short_id}_enable,
+	.unprepare = {p.short_id}_unprepare,
 	.get_modes = {p.short_id}_get_modes,
 }};
 
