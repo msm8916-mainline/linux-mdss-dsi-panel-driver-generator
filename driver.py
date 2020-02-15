@@ -392,7 +392,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 		return ret;
 	}}
 '''
-	else:
+	elif p.backlight:
 		s += '''
 	ret = drm_panel_of_backlight(&ctx->panel);
 	if (ret) {

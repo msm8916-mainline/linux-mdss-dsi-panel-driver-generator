@@ -17,6 +17,9 @@ def generate(p: Panel, options: generator.Options) -> None:
 		shutil.rmtree(p.id)
 	os.mkdir(p.id)
 
+	if not args.backlight:
+		p.backlight = None
+
 	generate_panel_simple(p)
 	generate_driver(p, options)
 
@@ -30,6 +33,9 @@ parser.add_argument('-r', '--regulator', action='append', nargs='?', const='powe
 """)
 parser.add_argument('--backlight-gpio', action='store_true', help="""
 	Enable/disable backlight with an extra GPIO (works only for MIPI DCS backlight)
+""")
+parser.add_argument('--no-backlight', dest='backlight', action='store_false', default=True, help="""
+	Do not generate any backlight/brightness related code.
 """)
 parser.add_argument('--ignore-wait', type=int, default=0, help="""
 	Ignore wait in command sequences that is smaller that the specified value.
