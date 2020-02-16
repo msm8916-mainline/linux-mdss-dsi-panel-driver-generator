@@ -433,7 +433,17 @@ def generate_driver(p: Panel, options: Options) -> None:
 	if options.backlight_gpio:
 		options.gpios.append('backlight')
 
-	module = f"panel-{p.short_id.replace('_', '-')}"
+	dash_id = p.short_id.replace('_', '-')
+	compatible = dash_id.split('-', 1)
+
+	# Try to guess if short id starts with vendor name (e.g. booyi)
+	if compatible[0].isalpha():
+		compatible = ','.join(compatible)
+	else:
+		# Unknown vendor
+		compatible = 'mdss,' + '-'.join(compatible)
+
+	module = f"panel-{dash_id}"
 	with open(f'{p.id}/{module}.c', 'w') as f:
 		f.write(f'''\
 // SPDX-License-Identifier: GPL-2.0-only
@@ -492,7 +502,7 @@ static int {p.short_id}_remove(struct mipi_dsi_device *dsi)
 }}
 
 static const struct of_device_id {p.short_id}_of_match[] = {{
-	{{ .compatible = "mdss,{p.short_id}" }}, // FIXME
+	{{ .compatible = "{compatible}" }}, // FIXME
 	{{ /* sentinel */ }}
 }};
 MODULE_DEVICE_TABLE(of, {p.short_id}_of_match);
