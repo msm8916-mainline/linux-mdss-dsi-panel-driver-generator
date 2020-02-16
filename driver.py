@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 from __future__ import annotations
 
+import datetime
 import mipi
 import simple
 import wrap
@@ -447,7 +448,9 @@ def generate_driver(p: Panel, options: Options) -> None:
 	with open(f'{p.id}/{module}.c', 'w') as f:
 		f.write(f'''\
 // SPDX-License-Identifier: GPL-2.0-only
-// Copyright (c) 2013, The Linux Foundation. All rights reserved.
+// Copyright (c) {datetime.date.today().year} FIXME
+// Generated with linux-mdss-dsi-panel-driver-generator from vendor device tree:
+//   Copyright (c) 2013, The Linux Foundation. All rights reserved. (FIXME)
 {generate_includes(p, options)}
 
 {generate_struct(p, options)}
