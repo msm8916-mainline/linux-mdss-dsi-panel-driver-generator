@@ -60,6 +60,7 @@ class BacklightControl(Enum):
 	PWM = 'bl_ctrl_pwm'
 	DCS = 'bl_ctrl_dcs'
 	WLED = 'bl_ctrl_wled'
+	SAMSUNG_PWM = 'bl_ctrl_ss_pwm'
 
 
 class Dimension:
