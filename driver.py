@@ -124,14 +124,20 @@ def generate_reset(p: Panel) -> str:
 
 
 def generate_commands(p: Panel, options: Options, cmd_name: str) -> str:
+	cmd = p.cmds[cmd_name]
+
 	s = f'''\
 static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 {{
-	struct mipi_dsi_device *dsi = ctx->dsi;
-	struct device *dev = &dsi->dev;
-	int ret;
 '''
-	cmd = p.cmds[cmd_name]
+	variables = ['struct mipi_dsi_device *dsi = ctx->dsi']
+	if '(dev, ' in cmd.generated:
+		variables.append('struct device *dev = &dsi->dev')
+	if 'ret = ' in cmd.generated:
+		variables.append('int ret')
+
+	for v in variables:
+		s += f'\t{v};\n'
 
 	if p.cmds['on'].state != p.cmds['off'].state:
 		if cmd.state == CommandSequence.State.LP_MODE:
