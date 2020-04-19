@@ -209,6 +209,10 @@ def _generate_peripheral(t: Transaction, payload: bytes, options: Options) -> st
 		raise ValueError(t)
 
 
+def _generate_null_packet(t: Transaction, payload: bytes, options: Options) -> str:
+	return "\t// WARNING: Ignoring weird NULL_PACKET (dummy packet)"
+
+
 def _generate_fallback(t: Transaction, payload: bytes, options: Options) -> str:
 	raise ValueError(t.name + ' is not supported')
 
@@ -246,7 +250,7 @@ class Transaction(Enum):
 
 	END_OF_TRANSMISSION = 0x08,
 
-	NULL_PACKET = 0x09,
+	NULL_PACKET = 0x09, -1, _generate_null_packet
 	BLANKING_PACKET = 0x19,
 	GENERIC_LONG_WRITE = 0x29, -1, _generate_generic_write
 	DCS_LONG_WRITE = 0x39, -1, _generate_dcs_write
