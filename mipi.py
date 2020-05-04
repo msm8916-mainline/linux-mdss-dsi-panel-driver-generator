@@ -131,12 +131,26 @@ class DCSCommand(Enum):
 	def find(payload: bytes) -> Optional[DCSCommand]:
 		try:
 			dcs = DCSCommand(payload[0])
-			if dcs.nargs and len(payload) - 1 not in dcs.nargs:
-				# Argument count does not match. Weird.
-				return None
-			return dcs
 		except ValueError:
+			# Not a specified DCS command
 			return None
+
+		if dcs.nargs and len(payload) - 1 not in dcs.nargs:
+			# Argument count does not match. Weird.
+			expected_args = " or ".join(str(i) for i in dcs.nargs)
+			print(f"WARNING: DCS command {dcs.name} with incorrect argument count "
+				  f"(expected: {expected_args}, is: {len(payload) - 1})")
+			return None
+
+		try:
+			# Try to parse the argument(s)
+			dcs.get_params(payload[1:])
+		except ValueError as e:
+			# Not a valid argument. Weird.
+			print(f"WARNING: DCS command {dcs.name} with invalid arguments {payload[1:]}: {e}")
+			return None
+
+		return dcs
 
 
 def _generate_checked_call(method: str, args: List[str], description: str) -> str:
