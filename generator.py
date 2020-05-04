@@ -12,3 +12,4 @@ class Options:
 	backlight: bool
 	backlight_gpio: bool
 	ignore_wait: int
+	dumb_dcs: bool

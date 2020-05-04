@@ -15,6 +15,8 @@ from __future__ import annotations
 from enum import IntEnum, unique, Enum
 from typing import List, Optional, Union, Tuple
 
+from generator import Options
+
 import wrap
 
 
@@ -128,11 +130,14 @@ class DCSCommand(Enum):
 		return params
 
 	@staticmethod
-	def find(payload: bytes) -> Optional[DCSCommand]:
+	def find(payload: bytes, dumb: bool) -> Optional[DCSCommand]:
 		try:
 			dcs = DCSCommand(payload[0])
 		except ValueError:
 			# Not a specified DCS command
+			return None
+
+		if dumb and dcs not in DCSCommand._DUMB_ALLOWED:
 			return None
 
 		if dcs.nargs and len(payload) - 1 not in dcs.nargs:
@@ -153,6 +158,10 @@ class DCSCommand(Enum):
 		return dcs
 
 
+DCSCommand._DUMB_ALLOWED = [DCSCommand.ENTER_SLEEP_MODE, DCSCommand.EXIT_SLEEP_MODE,
+							DCSCommand.SET_DISPLAY_ON, DCSCommand.SET_DISPLAY_OFF]
+
+
 def _generate_checked_call(method: str, args: List[str], description: str) -> str:
 	return f'''\
 {wrap.join(f'	ret = {method}(', ',', ');', args)}
@@ -169,17 +178,17 @@ MACROS = {
 }
 
 
-def _generate_generic_write(t: Transaction, payload: bytes) -> str:
+def _generate_generic_write(t: Transaction, payload: bytes, options: Options) -> str:
 	# TODO: Warn when downstream uses LONG_WRITE but mainline would use SHORT
 	params = _get_params_hex(payload)
 	params.insert(0, 'dsi')
 	return wrap.join('\tdsi_generic_write_seq(', ',', ');', params, force=2)
 
 
-def _generate_dcs_write(t: Transaction, payload: bytes) -> str:
+def _generate_dcs_write(t: Transaction, payload: bytes, options: Options) -> str:
 	# TODO: Warn when downstream uses LONG_WRITE but mainline would use SHORT
 
-	dcs = DCSCommand.find(payload)
+	dcs = DCSCommand.find(payload, options.dumb_dcs)
 	if dcs and dcs.method:
 		return _generate_checked_call(dcs.method, dcs.get_params(payload[1:]), dcs.description)
 
@@ -191,7 +200,7 @@ def _generate_dcs_write(t: Transaction, payload: bytes) -> str:
 	return wrap.join('\tdsi_dcs_write_seq(', ',', ');', params, force=2)
 
 
-def _generate_peripheral(t: Transaction, payload: bytes) -> str:
+def _generate_peripheral(t: Transaction, payload: bytes, options: Options) -> str:
 	if t == Transaction.TURN_ON_PERIPHERAL:
 		return _generate_checked_call('mipi_dsi_turn_on_peripheral', ['dsi'], t.description)
 	elif t == Transaction.SHUTDOWN_PERIPHERAL:
@@ -200,7 +209,7 @@ def _generate_peripheral(t: Transaction, payload: bytes) -> str:
 		raise ValueError(t)
 
 
-def _generate_fallback(t: Transaction, payload: bytes) -> str:
+def _generate_fallback(t: Transaction, payload: bytes, options: Options) -> str:
 	raise ValueError(t.name + ' is not supported')
 
 
@@ -270,5 +279,5 @@ class Transaction(Enum):
 	def description(self):
 		return self.name.lower().replace('_', ' ')
 
-	def generate(self, payload: bytes) -> str:
-		return self._generate(self, payload)
+	def generate(self, payload: bytes, options: Options) -> str:
+		return self._generate(self, payload, options)

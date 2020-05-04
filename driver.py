@@ -433,7 +433,7 @@ def generate_driver(p: Panel, options: Options) -> None:
 	# Generate command sequences early
 	for cmd in p.cmds.values():
 		for c in cmd.seq:
-			c.generated = c.type.generate(c.payload)
+			c.generated = c.type.generate(c.payload, options)
 			cmd.generated += c.generated
 
 	options.gpios = []
