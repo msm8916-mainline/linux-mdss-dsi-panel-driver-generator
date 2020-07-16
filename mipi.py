@@ -58,7 +58,9 @@ class TearMode(IntEnum):
 class DCSCommand(Enum):
 	NOP = 0x00, 0, 'mipi_dsi_dcs_nop'
 	SOFT_RESET = 0x01, 0, 'mipi_dsi_dcs_soft_reset'
-	# GET_DISPLAY_ID = 0x04
+	# GET_COMPRESSION_MODE = 0x03,
+	# GET_DISPLAY_ID = 0x04,
+	# GET_ERROR_COUNT_ON_DSI = 0x05,
 	# GET_RED_CHANNEL = 0x06,
 	# GET_GREEN_CHANNEL = 0x07,
 	# GET_BLUE_CHANNEL = 0x08,
@@ -73,6 +75,8 @@ class DCSCommand(Enum):
 	EXIT_SLEEP_MODE = 0x11, 0, 'mipi_dsi_dcs_exit_sleep_mode'
 	ENTER_PARTIAL_MODE = 0x12, 0,
 	ENTER_NORMAL_MODE = 0x13, 0,
+	# GET_IMAGE_CHECKSUM_RGB = 0x14,
+	# GET_IMAGE_CHECKSUM_CT = 0x15,
 	EXIT_INVERT_MODE = 0x20, 0,
 	ENTER_INVERT_MODE = 0x21, 0,
 	SET_GAMMA_CURVE = 0x26, 1,
@@ -84,6 +88,7 @@ class DCSCommand(Enum):
 	WRITE_LUT = 0x2D,
 	READ_MEMORY_START = 0x2E,
 	SET_PARTIAL_ROWS = 0x30,
+	SET_PARTIAL_COLUMNS = 0x31,
 	SET_SCROLL_AREA = 0x33, 6,
 	SET_TEAR_OFF = 0x34, 0, 'mipi_dsi_dcs_set_tear_off'
 	SET_TEAR_ON = 0x35, 1, 'mipi_dsi_dcs_set_tear_on', TearMode.get_params
@@ -93,7 +98,10 @@ class DCSCommand(Enum):
 	ENTER_IDLE_MODE = 0x39, 0,
 	SET_PIXEL_FORMAT = 0x3A, 1, 'mipi_dsi_dcs_set_pixel_format'
 	WRITE_MEMORY_CONTINUE = 0x3C,
+	SET_3D_CONTROL = 0x3D,
 	READ_MEMORY_CONTINUE = 0x3E,
+	# GET_3D_CONTROL = 0x3F,
+	SET_VSYNC_TIMING = 0x40
 	SET_TEAR_SCANLINE = 0x44, 2, 'mipi_dsi_dcs_set_tear_scanline', _get_params_int(2, 'big')
 	GET_SCANLINE = 0x45,
 	SET_DISPLAY_BRIGHTNESS = 0x51, (1, 2), 'mipi_dsi_dcs_set_display_brightness', _get_params_int(2, 'little')
@@ -105,7 +113,9 @@ class DCSCommand(Enum):
 	SET_CABC_MIN_BRIGHTNESS = 0x5E,
 	# GET_CABC_MIN_BRIGHTNESS = 0x5F,
 	READ_DDB_START = 0xA1,
+	READ_PPS_START = 0xA2,
 	READ_DDB_CONTINUE = 0xA8,
+	READ_PPS_CONTINUE = 0xA9,
 
 	def __new__(cls, value: int, nargs: Union[int, Tuple[int]] = (), method: str = None,
 				_get_params=_get_params_hex) -> DCSCommand:
