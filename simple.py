@@ -17,7 +17,6 @@ static const struct drm_display_mode {p.short_id}_mode = {{
 	.vsync_start = {p.v.px} + {p.v.fp},
 	.vsync_end = {p.v.px} + {p.v.fp} + {p.v.pw},
 	.vtotal = {p.v.px} + {p.v.fp} + {p.v.pw} + {p.v.bp},
-	.vrefresh = {p.framerate},
 	.width_mm = {p.h.size},
 	.height_mm = {p.v.size},
 }};
