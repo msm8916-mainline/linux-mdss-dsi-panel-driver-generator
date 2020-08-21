@@ -359,19 +359,15 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 			s += f'''
 	ret = devm_regulator_bulk_get(dev, ARRAY_SIZE(ctx->supplies),
 				      ctx->supplies);
-	if (ret < 0) {{
-		dev_err(dev, "Failed to get regulators: %d\\n", ret);
-		return ret;
-	}}
+	if (ret < 0)
+		return dev_err_probe(dev, ret, "Failed to get regulators\\n");
 '''
 		else:
 			s += f'''
 	ctx->supply = devm_regulator_get(dev, "{options.regulator[0]}");
-	if (IS_ERR(ctx->supply)) {{
-		ret = PTR_ERR(ctx->supply);
-		dev_err(dev, "Failed to get {options.regulator[0]} regulator: %d\\n", ret);
-		return ret;
-	}}
+	if (IS_ERR(ctx->supply))
+		return dev_err_probe(dev, PTR_ERR(ctx->supply),
+				     "Failed to get {options.regulator[0]} regulator\\n");
 '''
 
 	for name, flags in options.gpios.items():
@@ -382,11 +378,9 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 
 		s += f'''
 	ctx->{name}_gpio = devm_gpiod_get(dev, "{name}", {init});
-	if (IS_ERR(ctx->{name}_gpio)) {{
-		ret = PTR_ERR(ctx->{name}_gpio);
-		dev_err(dev, "Failed to get {name}-gpios: %d\\n", ret);
-		return ret;
-	}}
+	if (IS_ERR(ctx->{name}_gpio))
+		return dev_err_probe(dev, PTR_ERR(ctx->{name}_gpio),
+				     "Failed to get {name}-gpios\\n");
 '''
 
 	s += f'''
@@ -404,19 +398,15 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	if p.backlight == BacklightControl.DCS:
 		s += f'''
 	ctx->panel.backlight = {p.short_id}_create_backlight(dsi);
-	if (IS_ERR(ctx->panel.backlight)) {{
-		ret = PTR_ERR(ctx->panel.backlight);
-		dev_err(dev, "Failed to create backlight: %d\\n", ret);
-		return ret;
-	}}
+	if (IS_ERR(ctx->panel.backlight))
+		return dev_err_probe(dev, PTR_ERR(ctx->panel.backlight),
+				     "Failed to create backlight\\n");
 '''
 	elif p.backlight:
 		s += '''
 	ret = drm_panel_of_backlight(&ctx->panel);
-	if (ret) {
-		dev_err(dev, "Failed to get backlight: %d\\n", ret);
-		return ret;
-	}
+	if (ret)
+		return dev_err_probe(dev, ret, "Failed to get backlight\\n");
 '''
 
 	s += '''
