@@ -452,6 +452,8 @@ def generate_driver(p: Panel, options: Options) -> None:
 		# Unknown vendor
 		compatible = 'mdss,' + '-'.join(compatible)
 
+	options.compatible = compatible
+
 	module = f"panel-{dash_id}"
 	with open(f'{p.id}/{module}.c', 'w') as f:
 		f.write(f'''\

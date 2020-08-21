@@ -38,7 +38,7 @@ class TrafficMode(Enum):
 
 	@staticmethod
 	def parse(prop: libfdt.Property) -> Optional[TrafficMode]:
-		if prop[-1] == 0:  # Null terminated string
+		if prop.is_str():
 			return TrafficMode(prop.as_str())
 
 		print(f"WARNING: qcom,mdss-dsi-traffic-mode is not a null terminated string:", prop)
@@ -54,6 +54,40 @@ class TrafficMode(Enum):
 		# Use the default in mdss_dsi_panel.c
 		print("Falling back to MIPI_DSI_MODE_VIDEO_SYNC_PULSE")
 		return TrafficMode.SYNC_PULSE
+
+
+@unique
+class LaneMap(Enum):
+	MAP_0123 = [0, 1, 2, 3]
+	MAP_3012 = [3, 0, 1, 2]
+	MAP_2301 = [2, 3, 0, 1]
+	MAP_1230 = [1, 2, 3, 0]
+	MAP_0321 = [0, 3, 2, 1]
+	MAP_1032 = [1, 0, 3, 2]
+	MAP_2103 = [2, 1, 0, 3]
+	MAP_3210 = [3, 2, 1, 0]
+
+	def __new__(cls, log2phys: List[int]) -> LaneMap:
+		obj = object.__new__(cls)
+		obj._value_ = "lane_map_" + ''.join(map(str, log2phys))
+		# Logical lane -> physical lane (used in downstream)
+		obj.log2phys = log2phys
+		# Physical lane -> logical lane (used in mainline)
+		obj.phys2log = [0, 0, 0, 0]
+		for i, n in enumerate(log2phys):
+			obj.phys2log[n] = i
+		return obj
+
+	@staticmethod
+	def parse(prop: Optional[libfdt.Property]) -> LaneMap:
+		if not prop:
+			return LaneMap.MAP_0123
+		if prop.is_str():  # Null terminated string
+			return LaneMap(prop.as_str())
+
+		print(f"WARNING: qcom,mdss-dsi-lane-map is not a null terminated string:", prop)
+		return LaneMap.MAP_0123
+
 
 @unique
 class BacklightControl(Enum):
@@ -171,6 +205,7 @@ class Panel:
 		self.lanes = 0
 		while fdt.getprop_or_none(node, f'qcom,mdss-dsi-lane-{self.lanes}-state') is not None:
 			self.lanes += 1
+		self.lane_map = LaneMap.parse(fdt.getprop_or_none(node, 'qcom,mdss-dsi-lane-map'))
 
 		self.flags = self.mode.flags + self.traffic_mode.flags
 

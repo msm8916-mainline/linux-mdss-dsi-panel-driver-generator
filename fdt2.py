@@ -34,9 +34,14 @@ class Fdt2(FdtRo):
 		return prop.as_int32()
 
 
+def property_is_str(self):
+	return self[-1] == 0 and 0 not in self[:-1]
+
+
 def property_as_uint32_array(self):
 	num = int(len(self) / 4)
 	return list(struct.unpack('>' + ('L' * num), self))
 
 
+Property.is_str = property_is_str
 Property.as_uint32_array = property_as_uint32_array

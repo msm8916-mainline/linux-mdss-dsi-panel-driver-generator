@@ -13,3 +13,7 @@ class Options:
 	backlight_gpio: bool
 	ignore_wait: int
 	dumb_dcs: bool
+
+	# Added by panel driver generator
+	compatible: str
+	gpios: List[str]

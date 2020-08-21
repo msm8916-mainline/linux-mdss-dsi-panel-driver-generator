@@ -5,6 +5,7 @@ import shutil
 
 import generator
 from driver import generate_driver
+from dtsi import generate_panel_dtsi
 from fdt2 import Fdt2
 from panel import Panel
 from simple import generate_panel_simple
@@ -22,6 +23,7 @@ def generate(p: Panel, options: generator.Options) -> None:
 
 	generate_panel_simple(p)
 	generate_driver(p, options)
+	generate_panel_dtsi(p, options)
 
 
 parser = argparse.ArgumentParser(
