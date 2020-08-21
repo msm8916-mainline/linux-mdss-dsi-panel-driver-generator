@@ -1,4 +1,4 @@
-from generator import Options
+from generator import Options, GpioFlag
 from panel import Panel, BacklightControl
 
 
@@ -18,8 +18,9 @@ def generate_supplies(options: Options):
 
 def generate_gpios(options: Options):
 	s = ""
-	for r in options.gpios:
-		s += f"\t\t{r}-gpios = <&msmgpio XY GPIO_ACTIVE_HIGH>;\n"
+	for name, flags in options.gpios.items():
+		flags = "GPIO_ACTIVE_LOW" if flags & GpioFlag.ACTIVE_LOW else "GPIO_ACTIVE_HIGH"
+		s += f"\t\t{name}-gpios = <&msmgpio XY {flags}>;\n"
 	return s
 
 

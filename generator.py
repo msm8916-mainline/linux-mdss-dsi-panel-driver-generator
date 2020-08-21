@@ -2,7 +2,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, TextIO
+from enum import Flag, auto
+from typing import List, Optional, TextIO, Dict
+
+
+class GpioFlag(Flag):
+	ACTIVE_HIGH = 0
+	ACTIVE_LOW = auto()
 
 
 @dataclass(init=False)
@@ -16,4 +22,4 @@ class Options:
 
 	# Added by panel driver generator
 	compatible: str
-	gpios: List[str]
+	gpios: Dict[str, GpioFlag]

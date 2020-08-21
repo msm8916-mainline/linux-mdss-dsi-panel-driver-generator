@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import datetime
+
 import mipi
 import simple
 import wrap
-from generator import Options
+from generator import Options, GpioFlag
 from panel import Panel, BacklightControl, CommandSequence
 
 
@@ -59,7 +60,7 @@ def generate_struct(p: Panel, options: Options) -> str:
 			variables.append(f'struct regulator_bulk_data supplies[{len(options.regulator)}]')
 		else:
 			variables.append('struct regulator *supply')
-	variables += [f'struct gpio_desc *{name}_gpio' for name in options.gpios]
+	variables += [f'struct gpio_desc *{name}_gpio' for name in options.gpios.keys()]
 	variables.append('bool prepared')
 
 	s = f'struct {p.short_id} {{'
@@ -109,12 +110,15 @@ def msleep(m: int) -> str:
 		return f"usleep_range({u}, {u + 1000})"
 
 
-def generate_reset(p: Panel) -> str:
+def generate_reset(p: Panel, options: Options) -> str:
 	if not p.reset_seq:
 		return ''
 
 	s = f'\nstatic void {p.short_id}_reset(struct {p.short_id} *ctx)\n{{\n'
 	for state, sleep in p.reset_seq:
+		# Invert reset sequence if GPIO is active low
+		if options.gpios["reset"] & GpioFlag.ACTIVE_LOW:
+			state = int(not bool(state))
 		s += f'\tgpiod_set_value_cansleep(ctx->reset_gpio, {state});\n'
 		if sleep:
 			s += f'\t{msleep(sleep)};\n'
@@ -165,7 +169,7 @@ static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 def generate_cleanup(p: Panel, options: Options, indent: int = 1) -> str:
 	cleanup = []
 	if p.reset_seq:
-		cleanup.append('gpiod_set_value_cansleep(ctx->reset_gpio, 0);')
+		cleanup.append('gpiod_set_value_cansleep(ctx->reset_gpio, 1);')
 	if options.regulator:
 		if len(options.regulator) > 1:
 			cleanup.append('regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);')
@@ -370,9 +374,14 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	}}
 '''
 
-	for name in options.gpios:
+	for name, flags in options.gpios.items():
+		# TODO: In the future, we might want to change this to keep panel alive
+		init = "GPIOD_OUT_LOW"
+		if name == "reset":
+			init = "GPIOD_OUT_HIGH"
+
 		s += f'''
-	ctx->{name}_gpio = devm_gpiod_get(dev, "{name}", GPIOD_OUT_LOW);
+	ctx->{name}_gpio = devm_gpiod_get(dev, "{name}", {init});
 	if (IS_ERR(ctx->{name}_gpio)) {{
 		ret = PTR_ERR(ctx->{name}_gpio);
 		dev_err(dev, "Failed to get {name}-gpios: %d\\n", ret);
@@ -436,11 +445,24 @@ def generate_driver(p: Panel, options: Options) -> None:
 			c.generated = c.type.generate(c.payload, options)
 			cmd.generated += c.generated
 
-	options.gpios = []
+	options.gpios = {}
 	if p.reset_seq:
-		options.gpios.append('reset')
+		# Many panels have active low reset GPIOs. This can be seen if we keep
+		# reset high after turning the panel on. From a logical perspective this
+		# does not make sense: We should assert reset to actually do the reset,
+		# not to disable it.
+		#
+		# Therefore we try check the last element from the reset sequence here.
+		# If it sets the GPIO to 1 (high), we assume that reset is active low.
+
+		flag = GpioFlag.ACTIVE_HIGH
+		last_val, _ = p.reset_seq[-1]
+		if last_val == 1:
+			flag = GpioFlag.ACTIVE_LOW
+
+		options.gpios["reset"] = flag
 	if options.backlight_gpio:
-		options.gpios.append('backlight')
+		options.gpios["backlight"] = GpioFlag.ACTIVE_HIGH
 
 	dash_id = p.short_id.replace('_', '-')
 	compatible = dash_id.split('-', 1)
@@ -469,7 +491,7 @@ def generate_driver(p: Panel, options: Options) -> None:
 {{
 	return container_of(panel, struct {p.short_id}, panel);
 }}{generate_macros(p)}
-{generate_reset(p)}
+{generate_reset(p, options)}
 {generate_commands(p, options, 'on')}
 {generate_commands(p, options, 'off')}
 {generate_prepare(p, options)}
