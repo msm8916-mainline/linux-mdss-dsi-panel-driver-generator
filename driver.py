@@ -269,13 +269,8 @@ static int {p.short_id}_bl_update_status(struct backlight_device *bl)
 		s += f'\tstruct {p.short_id} *ctx = mipi_dsi_get_drvdata(dsi);\n'
 
 	s += '''\
-	u16 brightness = bl->props.brightness;
+	u16 brightness = backlight_get_brightness(bl);
 	int ret;
-
-	if (bl->props.power != FB_BLANK_UNBLANK ||
-	    bl->props.fb_blank != FB_BLANK_UNBLANK ||
-	    bl->props.state & (BL_CORE_SUSPENDED | BL_CORE_FBBLANK))
-		brightness = 0;
 '''
 
 	if options.backlight_gpio:
