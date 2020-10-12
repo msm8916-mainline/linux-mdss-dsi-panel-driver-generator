@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
 from generator import Options, GpioFlag
 from panel import Panel, BacklightControl
 
