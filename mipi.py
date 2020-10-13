@@ -154,7 +154,7 @@ class DCSCommand(Enum):
 			# Argument count does not match. Weird.
 			expected_args = " or ".join(str(i) for i in dcs.nargs)
 			print(f"WARNING: DCS command {dcs.name} with incorrect argument count "
-				  f"(expected: {expected_args}, is: {len(payload) - 1})")
+				  f"(expected: {expected_args}, is: {len(payload) - 1}). Consider using --dumb-dcs")
 			return None
 
 		try:
@@ -162,7 +162,7 @@ class DCSCommand(Enum):
 			dcs.get_params(payload[1:])
 		except ValueError as e:
 			# Not a valid argument. Weird.
-			print(f"WARNING: DCS command {dcs.name} with invalid arguments {payload[1:]}: {e}")
+			print(f"WARNING: DCS command {dcs.name} with invalid arguments {payload[1:]}: {e} Consider using --dumb-dcs")
 			return None
 
 		return dcs
