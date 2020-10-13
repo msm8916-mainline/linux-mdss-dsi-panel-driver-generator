@@ -107,13 +107,13 @@ class Dimension:
 			self.prefix = prefix
 			self.size = size
 
-	def __init__(self, fdt: Fdt2, node: int, t: Type) -> None:
+	def __init__(self, fdt: Fdt2, panel_node: int, mode_node: int, t: Type) -> None:
 		self.type = type
-		self.px = fdt.getprop(node, f'qcom,mdss-dsi-panel-{t.size}').as_int32()
-		self.fp = fdt.getprop(node, f'qcom,mdss-dsi-{t.prefix}-front-porch').as_int32()
-		self.bp = fdt.getprop(node, f'qcom,mdss-dsi-{t.prefix}-back-porch').as_int32()
-		self.pw = fdt.getprop(node, f'qcom,mdss-dsi-{t.prefix}-pulse-width').as_int32()
-		self.size = fdt.getprop_int32(node, f'qcom,mdss-pan-physical-{t.size}-dimension')
+		self.px = fdt.getprop(mode_node, f'qcom,mdss-dsi-panel-{t.size}').as_int32()
+		self.fp = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-front-porch').as_int32()
+		self.bp = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-back-porch').as_int32()
+		self.pw = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-pulse-width').as_int32()
+		self.size = fdt.getprop_int32(panel_node, f'qcom,mdss-pan-physical-{t.size}-dimension')
 
 
 @dataclass
@@ -184,6 +184,22 @@ def _remove_before(text: str, sub: str) -> str:
 	return text[i + 1:] if i >= 0 else text
 
 
+def _find_mode_node(fdt: Fdt2, node: int) -> int:
+	timings_node = fdt.subnode_or_none(node, "qcom,mdss-dsi-display-timings")
+	if timings_node is None:
+		return node
+
+	mode_node = None
+	for timing in fdt.subnodes(timings_node):
+		if mode_node:
+			print("WARNING: Multiple display timings are not supported yet, using first!")
+			break
+		mode_node = timing
+
+	assert mode_node, "No display timings found"
+	return mode_node
+
+
 class Panel:
 	def __init__(self, name: str, fdt: Fdt2, node: int) -> None:
 		self.name = name
@@ -192,9 +208,14 @@ class Panel:
 		self.short_id = _replace_all(self.id, '_panel', '_video', '_vid', '_cmd',
 									 '_hd', '_qhd', '_720p', '_1080p',
 									 '_wvga', '_fwvga', '_qvga', '_xga', '_wxga')
-		self.h = Dimension(fdt, node, Dimension.Type.HORIZONTAL)
-		self.v = Dimension(fdt, node, Dimension.Type.VERTICAL)
-		self.framerate = fdt.getprop(node, 'qcom,mdss-dsi-panel-framerate').as_int32()
+
+		# Newer SoCs can use panels in different modes (resolution, refresh rate etc).
+		# We don't support this properly yet but many panels just have a single mode
+		# ("timing") defined, so let's try to support this here.
+		mode_node = _find_mode_node(fdt, node)
+		self.h = Dimension(fdt, node, mode_node, Dimension.Type.HORIZONTAL)
+		self.v = Dimension(fdt, node, mode_node, Dimension.Type.VERTICAL)
+		self.framerate = fdt.getprop(mode_node, 'qcom,mdss-dsi-panel-framerate').as_int32()
 		self.bpp = fdt.getprop(node, 'qcom,mdss-dsi-bpp').as_int32()
 		self.mode = Mode(fdt.getprop(node, 'qcom,mdss-dsi-panel-type').as_str())
 		self.traffic_mode = TrafficMode.parse(fdt.getprop(node, 'qcom,mdss-dsi-traffic-mode'))
@@ -227,8 +248,8 @@ class Panel:
 			self.reset_seq = None
 
 		self.cmds = {
-			'on': CommandSequence(fdt, node, 'on'),
-			'off': CommandSequence(fdt, node, 'off')
+			'on': CommandSequence(fdt, mode_node, 'on'),
+			'off': CommandSequence(fdt, mode_node, 'off')
 		}
 
 		# If all commands are sent in LPM, add flag globally
@@ -259,3 +280,13 @@ class Panel:
 				panel = Panel.parse(fdt, sub)
 				if panel:
 					yield panel
+
+		# Newer device trees do not necessarily have panels below MDP,
+		# search for qcom,dsi-display node instead
+		for display in fdt.find_by_compatible('qcom,dsi-display'):
+			# Actual display node is pointed to by qcom,dsi-panel
+			phandle = fdt.getprop(display, 'qcom,dsi-panel').as_uint32()
+			offset = fdt.node_offset_by_phandle(phandle)
+			panel = Panel.parse(fdt, offset)
+			if panel:
+				yield panel

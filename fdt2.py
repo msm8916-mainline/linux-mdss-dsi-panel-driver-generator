@@ -21,6 +21,12 @@ class Fdt2(FdtRo):
 			yield offset
 			offset = self.next_subnode(offset, [FDT_ERR_NOTFOUND])
 
+	def subnode_or_none(self, parentoffset, name):
+		offset = self.subnode_offset(parentoffset, name, [FDT_ERR_NOTFOUND])
+		if offset == -FDT_ERR_NOTFOUND:
+			return None
+		return offset
+
 	def getprop_or_none(self, nodeoffset, prop_name):
 		prop = self.getprop(nodeoffset, prop_name, [FDT_ERR_NOTFOUND])
 		if prop == -FDT_ERR_NOTFOUND:
