@@ -295,7 +295,7 @@ static int {p.short_id}_bl_update_status(struct backlight_device *bl)
 static int {p.short_id}_bl_get_brightness(struct backlight_device *bl)
 {{
 	struct mipi_dsi_device *dsi = bl_get_data(bl);
-	u16 brightness = bl->props.brightness;
+	u16 brightness;
 	int ret;
 
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
