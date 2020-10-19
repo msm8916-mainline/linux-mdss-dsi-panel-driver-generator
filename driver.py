@@ -319,7 +319,7 @@ static struct backlight_device *
 {p.short_id}_create_backlight(struct mipi_dsi_device *dsi)
 {{
 	struct device *dev = &dsi->dev;
-	struct backlight_properties props = {{
+	const struct backlight_properties props = {{
 		.type = BACKLIGHT_RAW,
 		.brightness = {p.max_brightness or 255},
 		.max_brightness = {p.max_brightness or 255},
