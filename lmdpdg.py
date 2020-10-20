@@ -2,6 +2,8 @@
 import argparse
 import os
 import shutil
+import sys
+import traceback
 
 import generator
 from driver import generate_driver
@@ -61,7 +63,10 @@ for f in args.dtb:
 		found = False
 		for panel in Panel.find(fdt):
 			found = True
-			generate(panel, args)
+			try:
+				generate(panel, args)
+			except:
+				traceback.print_exc(file=sys.stdout)
 
 		if not found:
 			print(f"{f.name} does not contain any panel specifications")
