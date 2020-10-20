@@ -283,9 +283,19 @@ class Panel:
 
 		# Newer device trees do not necessarily have panels below MDP,
 		# search for qcom,dsi-display node instead
+		panel_phandles = set()
+
 		for display in fdt.find_by_compatible('qcom,dsi-display'):
-			# Actual display node is pointed to by qcom,dsi-panel
-			phandle = fdt.getprop(display, 'qcom,dsi-panel').as_uint32()
+			# On even newer SoCs there is another node with qcom,dsi-display-list
+			displays = fdt.getprop_or_none(display, 'qcom,dsi-display-list')
+			if displays is None:
+				panel_phandles.add(fdt.getprop(display, 'qcom,dsi-panel').as_uint32())
+			else:
+				for display_phandle in displays.as_uint32_array():
+					display = fdt.node_offset_by_phandle(display_phandle)
+					panel_phandles.add(fdt.getprop(display, 'qcom,dsi-panel').as_uint32())
+
+		for phandle in panel_phandles:
 			offset = fdt.node_offset_by_phandle(phandle)
 			panel = Panel.parse(fdt, offset)
 			if panel:
