@@ -219,9 +219,13 @@ class Panel:
 		self.bpp = fdt.getprop(node, 'qcom,mdss-dsi-bpp').as_int32()
 		self.mode = Mode(fdt.getprop(node, 'qcom,mdss-dsi-panel-type').as_str())
 		self.traffic_mode = TrafficMode.parse(fdt.getprop(node, 'qcom,mdss-dsi-traffic-mode'))
+
 		backlight = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bl-pmic-control-type')
 		self.backlight = BacklightControl(backlight.as_str()) if backlight else None
 		self.max_brightness = fdt.getprop_int32(node, 'qcom,mdss-dsi-bl-max-level', None)
+		if self.backlight == BacklightControl.DCS and self.max_brightness is None:
+			print("WARNING: DCS backlight without maximum brightness, ignoring...")
+			self.backlight = None
 
 		self.lanes = 0
 		while fdt.getprop_or_none(node, f'qcom,mdss-dsi-lane-{self.lanes}-state') is not None:
