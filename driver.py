@@ -405,11 +405,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 '''
 
 	s += '''
-	ret = drm_panel_add(&ctx->panel);
-	if (ret < 0) {
-		dev_err(dev, "Failed to add panel: %d\\n", ret);
-		return ret;
-	}
+	drm_panel_add(&ctx->panel);
 
 	ret = mipi_dsi_attach(dsi);
 	if (ret < 0) {
