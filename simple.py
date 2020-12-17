@@ -40,6 +40,7 @@ static const struct panel_desc_dsi {p.short_id} = {{
 			.width = {p.h.size},
 			.height = {p.v.size},
 		}},
+		.connector_type = DRM_MODE_CONNECTOR_DSI,
 	}},
 {wrap.join('	.flags = ', ' |', ',', p.flags)}
 	.format = {p.format},
