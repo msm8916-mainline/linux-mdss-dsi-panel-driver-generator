@@ -151,9 +151,9 @@ static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 
 	block = True
 	for c in cmd.seq:
-		if block or '{' in c.generated or '//' in c.generated:
+		if block or '{' in c.generated:
 			s += '\n'
-		block = '{' in c.generated or '//' in c.generated
+		block = '{' in c.generated
 
 		s += c.generated + '\n'
 		if c.wait and c.wait > options.ignore_wait:
