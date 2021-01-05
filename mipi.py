@@ -219,8 +219,9 @@ def _generate_peripheral(t: Transaction, payload: bytes, options: Options) -> st
 		raise ValueError(t)
 
 
-def _generate_null_packet(t: Transaction, payload: bytes, options: Options) -> str:
-	return "\t// WARNING: Ignoring weird NULL_PACKET (dummy packet)"
+def _generate_ignore(t: Transaction, payload: bytes, options: Options) -> str:
+	print(f"WARNING: Ignoring weird {t.name}")
+	return f"\t// WARNING: Ignoring weird {t.name}"
 
 
 def _generate_fallback(t: Transaction, payload: bytes, options: Options) -> str:
@@ -256,11 +257,11 @@ class Transaction(Enum):
 	DCS_COMPRESSION_MODE = 0x07,
 	PPS_LONG_WRITE = 0x0A,
 
-	SET_MAXIMUM_RETURN_PACKET_SIZE = 0x37,
+	SET_MAXIMUM_RETURN_PACKET_SIZE = 0x37, -1, _generate_ignore
 
 	END_OF_TRANSMISSION = 0x08,
 
-	NULL_PACKET = 0x09, -1, _generate_null_packet
+	NULL_PACKET = 0x09, -1, _generate_ignore
 	BLANKING_PACKET = 0x19,
 	GENERIC_LONG_WRITE = 0x29, -1, _generate_generic_write
 	DCS_LONG_WRITE = 0x39, -1, _generate_dcs_write
