@@ -42,6 +42,10 @@ parser.add_argument('--backlight-gpio', action='store_true', help="""
 parser.add_argument('--no-backlight', dest='backlight', action='store_false', default=True, help="""
 	Do not generate any backlight/brightness related code.
 """)
+parser.add_argument('--dcs-no-get-brightness', dest='dcs_get_brightness', action='store_false', default=True, help="""
+	Do not generate get_brightness() function for DCS backlight/brightness code.
+	Some panels do not implement the MIPI DCS Get Display Brightness command correctly.
+""")
 parser.add_argument('--ignore-wait', type=int, default=0, help="""
 	Ignore wait in command sequences that is smaller that the specified value.
 	Some device trees add a useless 1ms wait after each command, making the driver

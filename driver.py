@@ -289,7 +289,10 @@ static int {p.short_id}_bl_update_status(struct backlight_device *bl)
 
 	return 0;
 }}
+'''
 
+	if options.dcs_get_brightness:
+		s += f'''
 // TODO: Check if /sys/class/backlight/.../actual_brightness actually returns
 // correct values. If not, remove this function.
 static int {p.short_id}_bl_get_brightness(struct backlight_device *bl)
@@ -308,10 +311,14 @@ static int {p.short_id}_bl_get_brightness(struct backlight_device *bl)
 
 	return brightness{brightness_mask};
 }}
+'''
+		get_brightness = f'\n\t.get_brightness = {p.short_id}_bl_get_brightness,'
+	else:
+		get_brightness = ''
 
+	s += f'''
 static const struct backlight_ops {p.short_id}_bl_ops = {{
-	.update_status = {p.short_id}_bl_update_status,
-	.get_brightness = {p.short_id}_bl_get_brightness,
+	.update_status = {p.short_id}_bl_update_status,{get_brightness}
 }};
 '''
 	s += f'''
