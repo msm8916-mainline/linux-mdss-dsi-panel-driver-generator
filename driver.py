@@ -417,6 +417,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	ret = mipi_dsi_attach(dsi);
 	if (ret < 0) {
 		dev_err(dev, "Failed to attach to DSI host: %d\\n", ret);
+		drm_panel_remove(&ctx->panel);
 		return ret;
 	}
 
