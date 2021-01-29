@@ -446,7 +446,9 @@ def generate_driver(p: Panel, options: Options) -> None:
 
 		flag = GpioFlag.ACTIVE_HIGH
 		last_val, _ = p.reset_seq[-1]
+		print(f"checking {last_val} for reset active_low")
 		if last_val == 1:
+			print("active low it is!!")
 			flag = GpioFlag.ACTIVE_LOW
 
 		options.gpios["reset"] = flag

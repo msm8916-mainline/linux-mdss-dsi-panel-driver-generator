@@ -109,10 +109,15 @@ class Dimension:
 
 	def __init__(self, fdt: Fdt2, panel_node: int, mode_node: int, t: Type) -> None:
 		self.type = type
+		print(f'qcom,mdss-dsi-panel-{t.size}')
 		self.px = fdt.getprop(mode_node, f'qcom,mdss-dsi-panel-{t.size}').as_int32()
+		print(f'qcom,mdss-dsi-{t.prefix}-front-porch')
 		self.fp = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-front-porch').as_int32()
+		print(f'qcom,mdss-dsi-{t.prefix}-back-porch')
 		self.bp = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-back-porch').as_int32()
+		print(f'qcom,mdss-dsi-{t.prefix}-pulse-width')
 		self.pw = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-pulse-width').as_int32()
+		print(f'qcom,mdss-pan-physical-{t.size}-dimension')
 		self.size = fdt.getprop_int32(panel_node, f'qcom,mdss-pan-physical-{t.size}-dimension')
 
 
@@ -136,9 +141,11 @@ class CommandSequence:
 		HS_MODE = 'dsi_hs_mode'
 
 	def __init__(self, fdt: Fdt2, node: int, cmd: str) -> None:
+		print(f'qcom,mdss-dsi-{cmd}-command-state')
 		self.state = CommandSequence.State(fdt.getprop(node, f'qcom,mdss-dsi-{cmd}-command-state').as_str())
 		self.seq = []
 
+		print(f'qcom,mdss-dsi-{cmd}-command')
 		prop = fdt.getprop_or_none(node, f'qcom,mdss-dsi-{cmd}-command')
 		if prop is None:
 			print(f'Warning: qcom,mdss-dsi-{cmd}-command does not exist')
@@ -147,6 +154,7 @@ class CommandSequence:
 
 		if cmd == 'on':
 			# WHY SONY, WHY?????? Just put it in on-command...
+			print('somc,mdss-dsi-init-command')
 			init = fdt.getprop_or_none(node, 'somc,mdss-dsi-init-command')
 			if init:
 				itr = itertools.chain(init, itr)
@@ -185,6 +193,7 @@ def _remove_before(text: str, sub: str) -> str:
 
 
 def _find_mode_node(fdt: Fdt2, node: int) -> int:
+	print("qcom,mdss-dsi-display-timings")
 	timings_node = fdt.subnode_or_none(node, "qcom,mdss-dsi-display-timings")
 	if timings_node is None:
 		return node
@@ -215,35 +224,50 @@ class Panel:
 		mode_node = _find_mode_node(fdt, node)
 		self.h = Dimension(fdt, node, mode_node, Dimension.Type.HORIZONTAL)
 		self.v = Dimension(fdt, node, mode_node, Dimension.Type.VERTICAL)
+		print('qcom,mdss-dsi-panel-framerate')
 		self.framerate = fdt.getprop(mode_node, 'qcom,mdss-dsi-panel-framerate').as_int32()
+		print('qcom,mdss-dsi-bpp')
 		self.bpp = fdt.getprop(node, 'qcom,mdss-dsi-bpp').as_int32()
+		print('qcom,mdss-dsi-panel-type')
 		self.mode = Mode(fdt.getprop(node, 'qcom,mdss-dsi-panel-type').as_str())
+		print('qcom,mdss-dsi-traffic-mode')
 		self.traffic_mode = TrafficMode.parse(fdt.getprop(node, 'qcom,mdss-dsi-traffic-mode'))
 
+		print('qcom,mdss-dsi-bl-pmic-control-type')
 		backlight = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bl-pmic-control-type')
 		self.backlight = BacklightControl(backlight.as_str()) if backlight else None
+		print('qcom,mdss-dsi-bl-max-level')
 		self.max_brightness = fdt.getprop_int32(node, 'qcom,mdss-dsi-bl-max-level', None)
 		if self.backlight == BacklightControl.DCS and self.max_brightness is None:
 			print("WARNING: DCS backlight without maximum brightness, ignoring...")
 			self.backlight = None
+		print(f"{self.backlight} {self.max_brightness}")
 
 		self.lanes = 0
+		print(f'qcom,mdss-dsi-lane-{self.lanes}-state')
 		while fdt.getprop_or_none(node, f'qcom,mdss-dsi-lane-{self.lanes}-state') is not None:
 			self.lanes += 1
+			print(f'qcom,mdss-dsi-lane-{self.lanes}-state')
+		print('qcom,mdss-dsi-lane-map')
 		self.lane_map = LaneMap.parse(fdt.getprop_or_none(node, 'qcom,mdss-dsi-lane-map'))
 
 		self.flags = self.mode.flags + self.traffic_mode.flags
 
+		print('qcom,mdss-dsi-h-sync-pulse')
 		if fdt.getprop_int32(node, 'qcom,mdss-dsi-h-sync-pulse') != 0:
 			self.flags.append('MIPI_DSI_MODE_VIDEO_HSE')
 
+		print('qcom,mdss-dsi-tx-eot-append')
 		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-tx-eot-append') is None:
 			self.flags.append('MIPI_DSI_MODE_EOT_PACKET')
 
+		print('qcom,mdss-dsi-force-clock-lane-hs')
+		print('qcom,mdss-dsi-force-clk-lane-hs')
 		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-force-clock-lane-hs') is None \
 				and fdt.getprop_or_none(node, 'qcom,mdss-dsi-force-clk-lane-hs') is None:
 			self.flags.append('MIPI_DSI_CLOCK_NON_CONTINUOUS')
 
+		print('qcom,mdss-dsi-reset-sequence')
 		reset_seq = fdt.getprop_or_none(node, 'qcom,mdss-dsi-reset-sequence')
 		if reset_seq is not None:
 			itr = iter(reset_seq.as_uint32_array())
@@ -266,6 +290,7 @@ class Panel:
 			raise ValueError(f'Unsupported bpp: {self.bpp} (TODO)')
 
 		# Sony </3
+		print('somc,mdss-phy-size-mm')
 		prop = fdt.getprop_or_none(node, 'somc,mdss-phy-size-mm')
 		if prop:
 			phy_size_mm = prop.as_uint32_array()
@@ -274,6 +299,7 @@ class Panel:
 
 	@staticmethod
 	def parse(fdt: Fdt2, node: int) -> Panel:
+		print('qcom,mdss-dsi-panel-name')
 		name = fdt.getprop_or_none(node, 'qcom,mdss-dsi-panel-name')
 		return name and Panel(name.as_str(), fdt, node)
 
