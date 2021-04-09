@@ -146,10 +146,14 @@ class CommandSequence:
 		itr = iter(prop)
 
 		if cmd == 'on':
-			# WHY SONY, WHY?????? Just put it in on-command...
+			# WHY SONY/LG, WHY?????? Just put it in on-command...
 			init = fdt.getprop_or_none(node, 'somc,mdss-dsi-init-command')
 			if init:
 				itr = itertools.chain(init, itr)
+
+			on = fdt.getprop_or_none(node, 'lge,display-on-cmds')
+			if on:
+				itr = itertools.chain(itr, on)
 
 		for dtype in itr:
 			last, vc, ack, wait = next(itr), next(itr), next(itr), next(itr)
