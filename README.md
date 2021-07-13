@@ -66,7 +66,7 @@ Compile it using [dtc]: `dtc -O your.dtb your.dts`. That's it! Yay!
 Got the device tree blob? Then you are ready to go:
 
 ```shell
-$ python lmdpdg.py <dtbs...>
+$ ./lmdpdg.py <dtbs...>
 ```
 
 The generator has a couple of command line options that can be used to generate
