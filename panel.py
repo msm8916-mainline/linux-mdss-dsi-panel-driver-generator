@@ -242,7 +242,7 @@ class Panel:
 			self.flags.append('MIPI_DSI_MODE_VIDEO_HSE')
 
 		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-tx-eot-append') is None:
-			self.flags.append('MIPI_DSI_MODE_EOT_PACKET')
+			self.flags.append('MIPI_DSI_MODE_NO_EOT_PACKET')
 
 		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-force-clock-lane-hs') is None \
 				and fdt.getprop_or_none(node, 'qcom,mdss-dsi-force-clk-lane-hs') is None:
