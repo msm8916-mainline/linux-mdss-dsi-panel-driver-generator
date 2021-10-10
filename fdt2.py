@@ -27,6 +27,13 @@ class Fdt2(FdtRo):
 			return None
 		return offset
 
+	def getprop(self, nodeoffset, prop_name, quiet=()):
+		try:
+			return super().getprop(nodeoffset, prop_name, quiet)
+		except:
+			print(f"ERROR: Failed to get property: {prop_name}")
+			raise
+
 	def getprop_or_none(self, nodeoffset, prop_name):
 		prop = self.getprop(nodeoffset, prop_name, [FDT_ERR_NOTFOUND])
 		if prop == -FDT_ERR_NOTFOUND:
