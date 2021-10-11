@@ -19,6 +19,7 @@ class Options:
 	backlight_gpio: bool
 	dcs_get_brightness: bool
 	ignore_wait: int
+	use_helper: bool
 	dumb_dcs: bool
 
 	# Added by panel driver generator

@@ -51,6 +51,9 @@ parser.add_argument('--ignore-wait', type=int, default=0, help="""
 	Some device trees add a useless 1ms wait after each command, making the driver
 	unnecessarily verbose.
 """)
+parser.add_argument('--use-helper', dest='use_helper', action='store_true', help="""
+	Use common driver helper.
+""")
 parser.add_argument('--dumb-dcs', dest='dumb_dcs', action='store_true', help="""
 	Do not attempt to interpret DCS commands. Some panels use arbitrary DCS commands
 	to write to registers, which conflict with commands specified in the MIPI DCS

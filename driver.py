@@ -25,6 +25,9 @@ def generate_includes(p: Panel, options: Options) -> str:
 		},
 	}
 
+	if options.use_helper:
+		del includes['drm']
+
 	if p.reset_seq:
 		includes['linux'].add('gpio/consumer.h')
 	if options.regulator:
@@ -114,12 +117,19 @@ def generate_reset(p: Panel, options: Options) -> str:
 	if not p.reset_seq:
 		return ''
 
-	s = f'\nstatic void {p.short_id}_reset(struct {p.short_id} *ctx)\n{{\n'
+	if options.use_helper:
+		arg = f"struct gpio_desc *reset_gpio"
+		gpfx = ""
+	else:
+		arg = f"struct {p.short_id} *ctx"
+		gpfx = "ctx->"
+
+	s = f'\nstatic void {p.short_id}_reset({arg})\n{{\n'
 	for state, sleep in p.reset_seq:
 		# Invert reset sequence if GPIO is active low
 		if options.gpios["reset"] & GpioFlag.ACTIVE_LOW:
 			state = int(not bool(state))
-		s += f'\tgpiod_set_value_cansleep(ctx->reset_gpio, {state});\n'
+		s += f'\tgpiod_set_value_cansleep({gpfx}reset_gpio, {state});\n'
 		if sleep:
 			s += f'\t{msleep(sleep)};\n'
 	s += '}\n'
@@ -129,12 +139,17 @@ def generate_reset(p: Panel, options: Options) -> str:
 
 def generate_commands(p: Panel, options: Options, cmd_name: str) -> str:
 	cmd = p.cmds[cmd_name]
+	if options.use_helper:
+		variables = []
+		arg = f"struct mipi_dsi_device *dsi"
+	else:
+		variables = ['struct mipi_dsi_device *dsi = ctx->dsi']
+		arg = f"struct {p.short_id} *ctx"
 
 	s = f'''\
-static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
+static int {p.short_id}_{cmd_name}({arg})
 {{
 '''
-	variables = ['struct mipi_dsi_device *dsi = ctx->dsi']
 	if '(dev, ' in cmd.generated:
 		variables.append('struct device *dev = &dsi->dev')
 	if 'ret = ' in cmd.generated:
@@ -467,7 +482,38 @@ def generate_driver(p: Panel, options: Options) -> None:
 
 	module = f"panel-{dash_id}"
 	with open(f'{p.id}/{module}.c', 'w') as f:
-		f.write(f'''\
+		if options.use_helper:
+			f.write(f'''\
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) {datetime.date.today().year} FIXME
+// Generated with linux-mdss-dsi-panel-driver-generator from vendor device tree:
+//   Copyright (c) 2013, The Linux Foundation. All rights reserved. (FIXME)
+{generate_includes(p, options)}
+
+#include "panel-mipi-dsi-common.h"
+{generate_reset(p, options)}
+{generate_commands(p, options, 'on')}
+{generate_commands(p, options, 'off')}
+static const struct panel_mipi_dsi_info {p.short_id}_info = {{
+{simple.generate_mode_common(p)}
+
+	.reset = {p.short_id}_reset,
+	.power_on = {p.short_id}_on,
+	.power_off = {p.short_id}_off,
+
+	.lanes = {p.lanes},
+	.format = {p.format},
+{wrap.join('	.mode_flags = ', ' |', '', p.flags)}
+}};
+
+MIPI_DSI_PANEL_DRIVER({p.short_id}, "{dash_id}", "{compatible}");
+
+MODULE_AUTHOR("linux-mdss-dsi-panel-driver-generator <fix@me>"); // FIXME
+MODULE_DESCRIPTION("DRM driver for {p.name}");
+MODULE_LICENSE("GPL v2");
+''')
+		else:
+			f.write(f'''\
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) {datetime.date.today().year} FIXME
 // Generated with linux-mdss-dsi-panel-driver-generator from vendor device tree:
