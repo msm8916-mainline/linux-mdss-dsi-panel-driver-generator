@@ -31,6 +31,8 @@ def generate_includes(p: Panel, options: Options) -> str:
 		includes['linux'].add('regulator/consumer.h')
 	if p.backlight == BacklightControl.DCS or options.backlight_fallback_dcs:
 		includes['linux'].add('backlight.h')
+	if p.has_dsc:
+		includes['drm'].add('drm_dsc.h')
 
 	for cmd in p.cmds.values():
 		if 'MIPI_DCS_' in cmd.generated:
@@ -164,6 +166,14 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 {{
 	struct {p.short_id} *ctx = to_{p.short_id}(panel);
 	struct device *dev = &ctx->dsi->dev;
+'''
+
+	if p.has_dsc:
+		s += '''
+	struct drm_dsc_picture_parameter_set pps;
+'''
+
+	s += f'''
 	int ret;
 
 	if (ctx->prepared)
@@ -197,10 +207,22 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 		dev_err(dev, "Failed to initialize panel: %d\\n", ret);{generate_cleanup(p, options, 2)}
 		return ret;
 	}}
+'''
 
+	if p.has_dsc:
+		s += '''
+	if (panel->dsc) {
+		/* this panel uses DSC so send the pps */
+		drm_dsc_pps_payload_pack(&pps, panel->dsc);
+		print_hex_dump(KERN_DEBUG, "DSC params:", DUMP_PREFIX_NONE,
+                               16, 1, &pps, sizeof(pps), false);
+	}
+'''
+
+	s += '''
 	ctx->prepared = true;
+
 	return 0;
-}}
 '''
 	return s
 
@@ -324,7 +346,14 @@ def generate_probe(p: Panel, options: Options) -> str:
 static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 {{
 	struct device *dev = &dsi->dev;
-	struct {p.short_id} *ctx;
+	struct {p.short_id} *ctx;'''
+
+	if p.has_dsc:
+		s += '''
+	struct drm_dsc_config *dsc;
+'''
+
+	s += f'''
 	int ret;
 
 	ctx = devm_kzalloc(dev, sizeof(*ctx), GFP_KERNEL);
@@ -414,7 +443,28 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 		drm_panel_remove(&ctx->panel);
 		return ret;
 	}
+'''
 
+	if p.has_dsc:
+		s += f'''
+	dsc = devm_kzalloc(&dsi->dev, sizeof(*dsc), GFP_KERNEL);
+	if (!dsc)
+		return -ENOMEM;
+
+	dsc->dsc_version_major = {p.dsc_version};
+	dsc->dsc_version_minor = {p.dsc_scr_version};
+
+	dsc->slice_height = {p.dsc_slice_height};
+	dsc->slice_width = {p.dsc_slice_width};
+	dsc->slice_count = 1; // TODO: fix this value
+	dsc->bits_per_component = {p.dsc_bit_per_component};
+	dsc->bits_per_pixel = {p.dsc_bit_per_pixel};
+	dsc->block_pred_enable = {"true" if p.dsc_dsc_block_prediction else "false"};
+
+	pinfo->base.dsc = dsc;
+'''
+
+	s += '''
 	return 0;
 }
 '''
