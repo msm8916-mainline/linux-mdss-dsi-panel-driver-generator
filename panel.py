@@ -207,7 +207,8 @@ def _find_mode_node(fdt: Fdt2, node: int) -> int:
 class Panel:
 	def __init__(self, name: str, fdt: Fdt2, node: int) -> None:
 		self.name = name
-		self.id = _remove_before(_remove_prefixes(fdt.get_name(node), 'qcom,mdss_dsi_', 'ss_dsi_panel_', 'mot_').lower(), ',')
+		self.node_name = fdt.get_name(node)
+		self.id = _remove_before(_remove_prefixes(self.node_name, 'qcom,mdss_dsi_', 'ss_dsi_panel_', 'mot_').lower(), ',')
 		print(f'Parsing: {self.id} ({name})')
 		self.short_id = _replace_all(self.id, '_panel', '_video', '_vid', '_cmd',
 									 '_hd', '_qhd', '_720p', '_1080p',
@@ -282,6 +283,22 @@ class Panel:
 		if dsi_ctrl is not None:
 			dsi_ctrl = fdt.node_offset_by_phandle(dsi_ctrl)
 			self.ldo_mode = fdt.getprop_or_none(dsi_ctrl, 'qcom,regulator-ldo-mode') is not None
+
+		# Timings are usually calculated by the driver except for downstream and LK
+		p = fdt.getprop_or_none(node, 'qcom,mdss-dsi-panel-timings')
+		self.timings = bytes(p) if p else bytes()
+		self.tclk_post = fdt.getprop_int32(node, 'qcom,mdss-dsi-t-clk-post')
+		self.tclk_pre = fdt.getprop_int32(node, 'qcom,mdss-dsi-t-clk-pre')
+
+		# Additional weird values used by downstream and LK
+		self.hsync_skew = fdt.getprop_int32(node, 'qcom,mdss-dsi-h-sync-skew')
+		self.hfp_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-hfp-power-mode') is not None
+		self.hsa_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-hsa-power-mode') is not None
+		self.hbp_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-hbp-power-mode') is not None
+		self.bllp_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bllp-power-mode') is not None
+		self.bllp_eof_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bllp-eof-power-mode') is not None
+		self.lp11_init = fdt.getprop_or_none(node, 'qcom,mdss-dsi-lp11-init') is not None
+		self.init_delay = fdt.getprop_int32(node, 'qcom,mdss-dsi-init-delay-us')
 
 	@staticmethod
 	def parse(fdt: Fdt2, node: int) -> Panel:
