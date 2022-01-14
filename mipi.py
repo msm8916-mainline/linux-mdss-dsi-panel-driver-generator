@@ -236,6 +236,9 @@ class Transaction(Enum):
 	H_SYNC_START = 0x21,
 	H_SYNC_END = 0x31,
 
+	COMPRESSION_MODE = 0x07,
+	END_OF_TRANSMISSION = 0x08,
+
 	COLOR_MODE_OFF = 0x02,
 	COLOR_MODE_ON = 0x12,
 	SHUTDOWN_PERIPHERAL = 0x22, 0, _generate_peripheral
@@ -253,18 +256,17 @@ class Transaction(Enum):
 	DCS_SHORT_WRITE_PARAM = 0x15, 1, _generate_dcs_write
 
 	DCS_READ = 0x06,
-
-	DCS_COMPRESSION_MODE = 0x07,
-	PPS_LONG_WRITE = 0x0A,
+	EXECUTE_QUEUE = 0x16,
 
 	SET_MAXIMUM_RETURN_PACKET_SIZE = 0x37, -1, _generate_ignore
-
-	END_OF_TRANSMISSION = 0x08,
 
 	NULL_PACKET = 0x09, -1, _generate_ignore
 	BLANKING_PACKET = 0x19,
 	GENERIC_LONG_WRITE = 0x29, -1, _generate_generic_write
 	DCS_LONG_WRITE = 0x39, -1, _generate_dcs_write
+
+	PICTURE_PARAMETER_SET = 0x0a,
+	COMPRESSED_PIXEL_STREAM = 0x0b,
 
 	LOOSELY_PACKED_PIXEL_STREAM_YCBCR20 = 0x0c,
 	PACKED_PIXEL_STREAM_YCBCR24 = 0x1c,
