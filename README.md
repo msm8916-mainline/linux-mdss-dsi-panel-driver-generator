@@ -73,6 +73,14 @@ The generator has a couple of command line options that can be used to generate
 additional code (e.g. to enable a regulator to power on the panel).
 The script will gladly inform you about available options if you pass `--help`.
 
+Currently there are 4 files generated:
+  - `panel-xyz.c`: The main (full) panel driver for Linux.
+  - `panel-simple-xyz.c`: A snippet to use for `panel-simple.c` in Linux.
+    Can be used if the full panel driver is causing problems.
+  - `panel-xyz.dtsi`: An example for the relevant panel setup in the device tree.
+  - `lk_panel_xyz.h`: A panel header for Qualcomm's Little Kernel (LK) bootloader.
+    Can be used to turn the display on for splash screens there.
+
 ### Making final edits
 In most cases, the driver should work as-is, no changes required.
 If you would like to use it permanently, or even upstream it, here are a few
