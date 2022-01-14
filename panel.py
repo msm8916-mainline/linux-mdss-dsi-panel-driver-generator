@@ -276,6 +276,13 @@ class Panel:
 			self.h.size = phy_size_mm[0]
 			self.v.size = phy_size_mm[1]
 
+		# Check DSI controller if LDO mode is needed
+		self.ldo_mode = False
+		dsi_ctrl = fdt.getprop_int32(node, 'qcom,mdss-dsi-panel-controller')
+		if dsi_ctrl is not None:
+			dsi_ctrl = fdt.node_offset_by_phandle(dsi_ctrl)
+			self.ldo_mode = fdt.getprop_or_none(dsi_ctrl, 'qcom,regulator-ldo-mode') is not None
+
 	@staticmethod
 	def parse(fdt: Fdt2, node: int) -> Panel:
 		name = fdt.getprop_or_none(node, 'qcom,mdss-dsi-panel-name')

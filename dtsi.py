@@ -51,3 +51,10 @@ def generate_panel_dtsi(p: Panel, options: Options) -> None:
 	remote-endpoint = <&panel_in>;
 }};
 ''')
+
+		if p.ldo_mode:
+			f.write('''
+&dsi_phy0 {
+	qcom,dsi-phy-regulator-ldo-mode;
+};
+''')
