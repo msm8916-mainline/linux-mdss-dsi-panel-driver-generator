@@ -10,6 +10,12 @@
 # Copyright (C) 2006 Nokia Corporation
 # Author: Imre Deak <imre.deak@nokia.com>
 #
+# Some code adapted from:
+# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/gpu/drm/drm_mipi_dsi.c
+#
+# Copyright (C) 2012-2013, Samsung Electronics, Co., Ltd.
+# Andrzej Hajda <a.hajda@samsung.com>
+#
 from __future__ import annotations
 
 from enum import IntEnum, unique, Enum
@@ -295,6 +301,28 @@ class Transaction(Enum):
 	@property
 	def description(self):
 		return self.name.lower().replace('_', ' ')
+
+	@property
+	def is_long(self):
+		# From mipi_dsi_packet_format_is_long()
+		return self in [
+			Transaction.NULL_PACKET,
+			Transaction.BLANKING_PACKET,
+			Transaction.GENERIC_LONG_WRITE,
+			Transaction.DCS_LONG_WRITE,
+			Transaction.PICTURE_PARAMETER_SET,
+			Transaction.COMPRESSED_PIXEL_STREAM,
+			Transaction.LOOSELY_PACKED_PIXEL_STREAM_YCBCR20,
+			Transaction.PACKED_PIXEL_STREAM_YCBCR24,
+			Transaction.PACKED_PIXEL_STREAM_YCBCR16,
+			Transaction.PACKED_PIXEL_STREAM_30,
+			Transaction.PACKED_PIXEL_STREAM_36,
+			Transaction.PACKED_PIXEL_STREAM_YCBCR12,
+			Transaction.PACKED_PIXEL_STREAM_16,
+			Transaction.PACKED_PIXEL_STREAM_18,
+			Transaction.PIXEL_STREAM_3BYTE_18,
+			Transaction.PACKED_PIXEL_STREAM_24,
+		]
 
 	def generate(self, payload: bytes, options: Options) -> str:
 		return self._generate(self, payload, options)
