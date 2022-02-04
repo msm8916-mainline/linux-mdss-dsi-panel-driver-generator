@@ -279,9 +279,9 @@ class Panel:
 
 		# Check DSI controller if LDO mode is needed
 		self.ldo_mode = False
-		dsi_ctrl = fdt.getprop_int32(node, 'qcom,mdss-dsi-panel-controller')
+		dsi_ctrl = fdt.getprop_or_none(node, 'qcom,mdss-dsi-panel-controller')
 		if dsi_ctrl is not None:
-			dsi_ctrl = fdt.node_offset_by_phandle(dsi_ctrl)
+			dsi_ctrl = fdt.node_offset_by_phandle(dsi_ctrl.as_uint32())
 			self.ldo_mode = fdt.getprop_or_none(dsi_ctrl, 'qcom,regulator-ldo-mode') is not None
 
 		# Timings are usually calculated by the driver except for downstream and LK
