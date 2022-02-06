@@ -14,6 +14,8 @@ changes are necessary for upstreaming the generated panel driver.
   - Generated panel driver:
   [`panel-s6e88a0-ams452ef01.c`](https://gist.github.com/Minecrell/bc5fbfc3ba98873d32c07793d6997172#file-panel-s6e88a0-ams452ef01-c),
   [`panel-simple-s6e88a0-ams452ef01.c`](https://gist.github.com/Minecrell/bc5fbfc3ba98873d32c07793d6997172#file-panel-simple-s6e88a0-ams452ef01-c)
+  - Mainlined panel driver:
+  [`panel-samsung-s6e88a0-ams452ef01.c`](https://github.com/torvalds/linux/blob/master/drivers/gpu/drm/panel/panel-samsung-s6e88a0-ams452ef01.c)
 
 ## Preparation
 ### Requirements
