@@ -110,11 +110,12 @@ def generate_lk_driver(p: Panel) -> None:
 
 	with open(f'{p.id}/lk_panel_{p.id}.h', 'w') as f:
 		f.write(f'''\
-// SPDX-License-Identifier: GPL-2.0-only
-// Copyright (c) {datetime.date.today().year} FIXME
-// Generated with linux-mdss-dsi-panel-driver-generator from vendor device tree:
-//   Copyright (c) 2014, The Linux Foundation. All rights reserved. (FIXME)
-
+/*
+ * SPDX-License-Identifier: GPL-2.0-only
+ * Copyright (c) {datetime.date.today().year} FIXME
+ * Generated with linux-mdss-dsi-panel-driver-generator from vendor device tree:
+ *   Copyright (c) 2014, The Linux Foundation. All rights reserved. (FIXME)
+ */
 #ifndef {define}
 #define {define}
 
