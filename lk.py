@@ -125,7 +125,7 @@ def generate_lk_driver(p: Panel) -> None:
 
 static struct panel_config {p.id}_panel_data = {{
 	.panel_node_id = "{p.node_name}",
-	.panel_controller = "dsi:0",
+	.panel_controller = "dsi:0:",
 	.panel_compatible = "qcom,mdss-dsi-panel",
 	.panel_type = {int(p.mode == Mode.CMD_MODE)},
 	.panel_destination = "DISPLAY_1",
