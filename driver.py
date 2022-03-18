@@ -29,7 +29,7 @@ def generate_includes(p: Panel, options: Options) -> str:
 		includes['linux'].add('gpio/consumer.h')
 	if options.regulator:
 		includes['linux'].add('regulator/consumer.h')
-	if p.backlight == BacklightControl.DCS:
+	if p.backlight == BacklightControl.DCS or options.backlight_fallback_dcs:
 		includes['linux'].add('backlight.h')
 
 	for cmd in p.cmds.values():
@@ -253,7 +253,7 @@ static int {p.short_id}_unprepare(struct drm_panel *panel)
 
 
 def generate_backlight(p: Panel, options: Options) -> str:
-	if p.backlight != BacklightControl.DCS:
+	if p.backlight != BacklightControl.DCS and not options.backlight_fallback_dcs:
 		return ''
 
 	brightness_mask = ' & 0xff'
@@ -397,7 +397,21 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 		       DRM_MODE_CONNECTOR_DSI);
 '''
 
-	if p.backlight == BacklightControl.DCS:
+	if options.backlight_fallback_dcs:
+		s += f'''
+	ret = drm_panel_of_backlight(&ctx->panel);
+	if (ret)
+		return dev_err_probe(dev, ret, "Failed to get backlight\\n");
+
+	/* Fallback to DCS backlight if no backlight is defined in DT */
+	if (!ctx->panel.backlight) {{
+		ctx->panel.backlight = {p.short_id}_create_backlight(dsi);
+		if (IS_ERR(ctx->panel.backlight))
+			return dev_err_probe(dev, PTR_ERR(ctx->panel.backlight),
+					     "Failed to create backlight\\n");
+	}}
+'''
+	elif p.backlight == BacklightControl.DCS:
 		s += f'''
 	ctx->panel.backlight = {p.short_id}_create_backlight(dsi);
 	if (IS_ERR(ctx->panel.backlight))

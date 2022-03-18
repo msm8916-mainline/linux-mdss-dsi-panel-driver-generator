@@ -17,6 +17,7 @@ class Options:
 	regulator: Optional[List[str]]
 	backlight: bool
 	backlight_gpio: bool
+	backlight_fallback_dcs: bool
 	dcs_get_brightness: bool
 	ignore_wait: int
 	dumb_dcs: bool
