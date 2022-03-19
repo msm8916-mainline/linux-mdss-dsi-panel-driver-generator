@@ -225,6 +225,11 @@ def _generate_peripheral(t: Transaction, payload: bytes, options: Options) -> st
 		raise ValueError(t)
 
 
+def _generate_compression_mode(t: Transaction, payload: bytes, options: Options) -> str:
+	return _generate_checked_call('mipi_dsi_compression_mode', ['dsi', str(bool(payload[0])).lower()],
+								  'set compression mode')
+
+
 def _generate_ignore(t: Transaction, payload: bytes, options: Options) -> str:
 	print(f"WARNING: Ignoring weird {t.name}")
 	return f"\t// WARNING: Ignoring weird {t.name}"
@@ -242,7 +247,7 @@ class Transaction(Enum):
 	H_SYNC_START = 0x21,
 	H_SYNC_END = 0x31,
 
-	COMPRESSION_MODE = 0x07,
+	COMPRESSION_MODE = 0x07, 1, _generate_compression_mode
 	END_OF_TRANSMISSION = 0x08,
 
 	COLOR_MODE_OFF = 0x02,
