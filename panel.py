@@ -246,7 +246,8 @@ class Panel:
 			self.flags.append('MIPI_DSI_MODE_NO_EOT_PACKET')
 
 		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-force-clock-lane-hs') is None \
-				and fdt.getprop_or_none(node, 'qcom,mdss-dsi-force-clk-lane-hs') is None:
+				and fdt.getprop_or_none(node, 'qcom,mdss-dsi-force-clk-lane-hs') is None \
+				and fdt.getprop_or_none(node, 'qcom,mdss-force-clk-lane-hs') is None:
 			self.flags.append('MIPI_DSI_CLOCK_NON_CONTINUOUS')
 
 		reset_seq = fdt.getprop_or_none(node, 'qcom,mdss-dsi-reset-sequence')
