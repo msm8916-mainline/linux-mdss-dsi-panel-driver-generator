@@ -250,6 +250,13 @@ class Panel:
 				and fdt.getprop_or_none(node, 'qcom,mdss-force-clk-lane-hs') is None:
 			self.flags.append('MIPI_DSI_CLOCK_NON_CONTINUOUS')
 
+		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-hfp-power-mode') is not None:
+			self.flags.append('MIPI_DSI_MODE_VIDEO_NO_HFP')
+		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-hsa-power-mode') is not None:
+			self.flags.append('MIPI_DSI_MODE_VIDEO_NO_HSA')
+		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-hbp-power-mode') is not None:
+			self.flags.append('MIPI_DSI_MODE_VIDEO_NO_HBP')
+
 		reset_seq = fdt.getprop_or_none(node, 'qcom,mdss-dsi-reset-sequence')
 		if reset_seq is not None:
 			itr = iter(reset_seq.as_uint32_array())
