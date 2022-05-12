@@ -211,7 +211,7 @@ class Panel:
 		self.id = _remove_before(_remove_prefixes(self.node_name, 'qcom,mdss_dsi_', 'ss_dsi_panel_', 'mot_').lower(), ',')
 		print(f'Parsing: {self.id} ({name})')
 		self.short_id = _replace_all(self.id, '_panel', '_video', '_vid', '_cmd',
-									 '_hd', '_qhd', '_720p', '_1080p',
+									 '_fhd', '_hd', '_qhd', '_720p', '_1080p',
 									 '_wvga', '_fwvga', '_qvga', '_xga', '_wxga')
 
 		# Newer SoCs can use panels in different modes (resolution, refresh rate etc).
