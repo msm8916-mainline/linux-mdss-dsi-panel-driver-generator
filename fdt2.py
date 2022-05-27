@@ -40,9 +40,11 @@ class Fdt2(FdtRo):
 			return None
 		return prop
 
-	def getprop_uint32(self, nodeoffset, prop_name, default=0):
+	def getprop_uint32(self, nodeoffset, prop_name, default=0, ignore_empty=False):
 		prop = self.getprop(nodeoffset, prop_name, [FDT_ERR_NOTFOUND])
 		if prop == -FDT_ERR_NOTFOUND:
+			return default
+		if ignore_empty and len(prop) == 0:
 			return default
 		return prop.as_uint32()
 

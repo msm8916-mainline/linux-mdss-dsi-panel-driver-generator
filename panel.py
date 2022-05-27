@@ -247,7 +247,7 @@ class Panel:
 
 		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-force-clock-lane-hs') is None \
 				and fdt.getprop_or_none(node, 'qcom,mdss-dsi-force-clk-lane-hs') is None \
-				and fdt.getprop_or_none(node, 'qcom,mdss-force-clk-lane-hs') is None:
+				and fdt.getprop_uint32(node, 'qcom,mdss-force-clk-lane-hs', ignore_empty=True) == 0:
 			self.flags.append('MIPI_DSI_CLOCK_NON_CONTINUOUS')
 
 		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-hfp-power-mode') is not None:
