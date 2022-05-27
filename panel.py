@@ -109,11 +109,11 @@ class Dimension:
 
 	def __init__(self, fdt: Fdt2, panel_node: int, mode_node: int, t: Type) -> None:
 		self.type = type
-		self.px = fdt.getprop(mode_node, f'qcom,mdss-dsi-panel-{t.size}').as_int32()
-		self.fp = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-front-porch').as_int32()
-		self.bp = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-back-porch').as_int32()
-		self.pw = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-pulse-width').as_int32()
-		self.size = fdt.getprop_int32(panel_node, f'qcom,mdss-pan-physical-{t.size}-dimension')
+		self.px = fdt.getprop(mode_node, f'qcom,mdss-dsi-panel-{t.size}').as_uint32()
+		self.fp = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-front-porch').as_uint32()
+		self.bp = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-back-porch').as_uint32()
+		self.pw = fdt.getprop(mode_node, f'qcom,mdss-dsi-{t.prefix}-pulse-width').as_uint32()
+		self.size = fdt.getprop_uint32(panel_node, f'qcom,mdss-pan-physical-{t.size}-dimension')
 
 
 @dataclass
@@ -220,14 +220,14 @@ class Panel:
 		mode_node = _find_mode_node(fdt, node)
 		self.h = Dimension(fdt, node, mode_node, Dimension.Type.HORIZONTAL)
 		self.v = Dimension(fdt, node, mode_node, Dimension.Type.VERTICAL)
-		self.framerate = fdt.getprop(mode_node, 'qcom,mdss-dsi-panel-framerate').as_int32()
-		self.bpp = fdt.getprop(node, 'qcom,mdss-dsi-bpp').as_int32()
+		self.framerate = fdt.getprop(mode_node, 'qcom,mdss-dsi-panel-framerate').as_uint32()
+		self.bpp = fdt.getprop(node, 'qcom,mdss-dsi-bpp').as_uint32()
 		self.mode = Mode(fdt.getprop(node, 'qcom,mdss-dsi-panel-type').as_str())
 		self.traffic_mode = TrafficMode.parse(fdt.getprop(node, 'qcom,mdss-dsi-traffic-mode'))
 
 		backlight = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bl-pmic-control-type')
 		self.backlight = BacklightControl(backlight.as_str()) if backlight else None
-		self.max_brightness = fdt.getprop_int32(node, 'qcom,mdss-dsi-bl-max-level', None)
+		self.max_brightness = fdt.getprop_uint32(node, 'qcom,mdss-dsi-bl-max-level', None)
 		if self.backlight == BacklightControl.DCS and self.max_brightness is None:
 			print("WARNING: DCS backlight without maximum brightness, ignoring...")
 			self.backlight = None
@@ -239,7 +239,7 @@ class Panel:
 
 		self.flags = self.mode.flags + self.traffic_mode.flags
 
-		if fdt.getprop_int32(node, 'qcom,mdss-dsi-h-sync-pulse') != 0:
+		if fdt.getprop_uint32(node, 'qcom,mdss-dsi-h-sync-pulse') != 0:
 			self.flags.append('MIPI_DSI_MODE_VIDEO_HSE')
 
 		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-tx-eot-append') is None:
@@ -295,18 +295,18 @@ class Panel:
 		# Timings are usually calculated by the driver except for downstream and LK
 		p = fdt.getprop_or_none(node, 'qcom,mdss-dsi-panel-timings')
 		self.timings = bytes(p) if p else bytes()
-		self.tclk_post = fdt.getprop_int32(node, 'qcom,mdss-dsi-t-clk-post')
-		self.tclk_pre = fdt.getprop_int32(node, 'qcom,mdss-dsi-t-clk-pre')
+		self.tclk_post = fdt.getprop_uint32(node, 'qcom,mdss-dsi-t-clk-post')
+		self.tclk_pre = fdt.getprop_uint32(node, 'qcom,mdss-dsi-t-clk-pre')
 
 		# Additional weird values used by downstream and LK
-		self.hsync_skew = fdt.getprop_int32(node, 'qcom,mdss-dsi-h-sync-skew')
+		self.hsync_skew = fdt.getprop_uint32(node, 'qcom,mdss-dsi-h-sync-skew')
 		self.hfp_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-hfp-power-mode') is not None
 		self.hsa_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-hsa-power-mode') is not None
 		self.hbp_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-hbp-power-mode') is not None
 		self.bllp_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bllp-power-mode') is not None
 		self.bllp_eof_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bllp-eof-power-mode') is not None
 		self.lp11_init = fdt.getprop_or_none(node, 'qcom,mdss-dsi-lp11-init') is not None
-		self.init_delay = fdt.getprop_int32(node, 'qcom,mdss-dsi-init-delay-us')
+		self.init_delay = fdt.getprop_uint32(node, 'qcom,mdss-dsi-init-delay-us')
 
 	@staticmethod
 	def parse(fdt: Fdt2, node: int) -> Panel:

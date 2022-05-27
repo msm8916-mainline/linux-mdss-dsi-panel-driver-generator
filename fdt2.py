@@ -40,11 +40,11 @@ class Fdt2(FdtRo):
 			return None
 		return prop
 
-	def getprop_int32(self, nodeoffset, prop_name, default=0):
+	def getprop_uint32(self, nodeoffset, prop_name, default=0):
 		prop = self.getprop(nodeoffset, prop_name, [FDT_ERR_NOTFOUND])
 		if prop == -FDT_ERR_NOTFOUND:
 			return default
-		return prop.as_int32()
+		return prop.as_uint32()
 
 
 def property_is_str(self):
