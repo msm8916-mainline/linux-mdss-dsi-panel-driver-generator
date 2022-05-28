@@ -28,6 +28,11 @@ def generate_gpios(options: Options):
 def generate_panel_dtsi(p: Panel, options: Options) -> None:
 	name = p.short_id.replace('_', '-')
 	with open(f'{p.id}/panel-{name}.dtsi', 'w') as f:
+		if p.cphy_mode:
+			f.write('''\
+#include <dt-bindings/phy/phy.h>
+
+''')
 		f.write(f'''\
 &dsi0 {{
 	panel@0 {{
@@ -56,5 +61,11 @@ def generate_panel_dtsi(p: Panel, options: Options) -> None:
 			f.write('''
 &dsi_phy0 {
 	qcom,dsi-phy-regulator-ldo-mode;
+};
+''')
+		if p.cphy_mode:
+			f.write('''
+&dsi0_phy {
+    phy-type = <PHY_TYPE_CPHY>;
 };
 ''')

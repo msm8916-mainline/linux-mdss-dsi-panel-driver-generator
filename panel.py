@@ -285,6 +285,9 @@ class Panel:
 			self.h.size = phy_size_mm[0]
 			self.v.size = phy_size_mm[1]
 
+		# Check dsi phy type
+		self.cphy_mode = fdt.getprop_or_none(node, 'qcom,panel-cphy-mode') is not None
+
 		# Check DSI controller if LDO mode is needed
 		self.ldo_mode = False
 		dsi_ctrl = fdt.getprop_or_none(node, 'qcom,mdss-dsi-panel-controller')
