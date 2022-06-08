@@ -317,12 +317,10 @@ class Panel:
 		return name and Panel(name.as_str(), fdt, node)
 
 	@staticmethod
-	def find(fdt: Fdt2) -> Iterator[Panel]:
+	def find(fdt: Fdt2) -> Iterator[int]:
 		for mdp in fdt.find_by_compatible('qcom,mdss_mdp'):
 			for sub in fdt.subnodes(mdp):
-				panel = Panel.parse(fdt, sub)
-				if panel:
-					yield panel
+				yield sub
 
 		# Newer device trees do not necessarily have panels below MDP,
 		# search for qcom,dsi-display node instead
@@ -339,7 +337,4 @@ class Panel:
 					panel_phandles.add(fdt.getprop(display, 'qcom,dsi-panel').as_uint32())
 
 		for phandle in panel_phandles:
-			offset = fdt.node_offset_by_phandle(phandle)
-			panel = Panel.parse(fdt, offset)
-			if panel:
-				yield panel
+			yield fdt.node_offset_by_phandle(phandle)

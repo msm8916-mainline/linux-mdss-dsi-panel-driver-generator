@@ -72,12 +72,14 @@ for f in args.dtb:
 		fdt = Fdt2(f.read())
 
 		found = False
-		for panel in Panel.find(fdt):
-			found = True
+		for offset in Panel.find(fdt):
 			try:
-				generate(panel, args)
+				panel = Panel.parse(fdt, offset)
+				if panel:
+					generate(panel, args)
+					found = True
 			except:
 				traceback.print_exc(file=sys.stdout)
 
 		if not found:
-			print(f"{f.name} does not contain any panel specifications")
+			print(f"{f.name} does not contain any usable panel specifications")
