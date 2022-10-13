@@ -461,7 +461,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	BUG_ON({p.h.px} % dsc->slice_width);
 	dsc->slice_count = {p.h.px} / dsc->slice_width;
 	dsc->bits_per_component = {p.dsc_bit_per_component};
-	dsc->bits_per_pixel = {p.dsc_bit_per_pixel};
+	dsc->bits_per_pixel = {p.dsc_bit_per_pixel} << 4; /* 4 fractional bits */
 	dsc->block_pred_enable = {"true" if p.dsc_dsc_block_prediction else "false"};
 
 	pinfo->base.dsc = dsc;
