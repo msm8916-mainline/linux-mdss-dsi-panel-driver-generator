@@ -332,14 +332,13 @@ class Panel:
 			dsc_bit_per_pixel = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-bit-per-pixel')
 			self.dsc_bit_per_pixel = dsc_bit_per_pixel.as_int32() if dsc_bit_per_pixel else None
 
-			# Boolean
-			self.dsc_dsc_block_prediction = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-block-prediction-enable')
+			self.dsc_dsc_block_prediction = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-block-prediction-enable') is not None
 
 			dsc_version = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-version')
-			self.dsc_version = dsc_version.as_int32() if dsc_version else None
+			self.dsc_version = dsc_version.as_int32() if dsc_version else 1
 
 			dsc_scr_version = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-scr-version')
-			self.dsc_scr_version = dsc_scr_version.as_int32() if dsc_scr_version else None
+			self.dsc_scr_version = dsc_scr_version.as_int32() if dsc_scr_version else 1
 
 	@staticmethod
 	def parse(fdt: Fdt2, node: int) -> Panel:

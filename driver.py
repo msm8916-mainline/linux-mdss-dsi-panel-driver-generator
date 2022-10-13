@@ -32,7 +32,8 @@ def generate_includes(p: Panel, options: Options) -> str:
 	if p.backlight == BacklightControl.DCS or options.backlight_fallback_dcs:
 		includes['linux'].add('backlight.h')
 	if p.has_dsc:
-		includes['drm'].add('drm_dsc.h')
+		includes['drm'].add('display/drm_dsc.h')
+		includes['drm'].add('display/drm_dsc_helper.h')
 
 	for cmd in p.cmds.values():
 		if 'MIPI_DCS_' in cmd.generated:
@@ -230,6 +231,7 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 	ctx->prepared = true;
 
 	return 0;
+}
 '''
 	return s
 
