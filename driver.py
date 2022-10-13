@@ -211,11 +211,11 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 
 	if p.has_dsc:
 		s += '''
-	if (panel->dsc) {
+	if (ctx->dsi->dsc) {
 		/* this panel uses DSC so send the pps */
-		drm_dsc_pps_payload_pack(&pps, panel->dsc);
+		drm_dsc_pps_payload_pack(&pps, ctx->dsi->dsc);
 		print_hex_dump(KERN_DEBUG, "DSC params:", DUMP_PREFIX_NONE,
-                               16, 1, &pps, sizeof(pps), false);
+			       16, 1, &pps, sizeof(pps), false);
 	}
 '''
 
@@ -464,7 +464,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	dsc->bits_per_pixel = {p.dsc_bit_per_pixel} << 4; /* 4 fractional bits */
 	dsc->block_pred_enable = {"true" if p.dsc_dsc_block_prediction else "false"};
 
-	pinfo->base.dsc = dsc;
+	dsi->dsc = dsc;
 '''
 
 	s += '''
