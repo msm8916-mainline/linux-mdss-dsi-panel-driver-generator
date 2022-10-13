@@ -216,6 +216,13 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 		drm_dsc_pps_payload_pack(&pps, ctx->dsi->dsc);
 		print_hex_dump(KERN_DEBUG, "DSC params:", DUMP_PREFIX_NONE,
 			       16, 1, &pps, sizeof(pps), false);
+
+		ret = mipi_dsi_picture_parameter_set(ctx->dsi, &pps);
+		if (ret < 0) {
+			dev_err(panel->dev, "failed to set pps: %d\\n", ret);
+			return ret;
+		}
+		msleep(28); /* TODO: Is this panel-dependent? */
 	}
 '''
 
