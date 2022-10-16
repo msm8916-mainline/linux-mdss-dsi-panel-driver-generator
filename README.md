@@ -12,8 +12,14 @@ changes are necessary for upstreaming the generated panel driver.
   - Input device tree:
   [`dsi_panel_S6E88A0_AMS452EF01_qhd_octa_video.dtsi`](https://gist.github.com/Minecrell/56c2b20118ba00a9723f0785301bc5ec#file-dsi_panel_s6e88a0_ams452ef01_qhd_octa_video-dtsi) 
   - Generated panel driver:
-  [`panel-s6e88a0-ams452ef01.c`](https://gist.github.com/Minecrell/bc5fbfc3ba98873d32c07793d6997172#file-panel-s6e88a0-ams452ef01-c),
+  [`panel-s6e88a0-ams452ef01.c`](https://gist.github.com/Minecrell/bc5fbfc3ba98873d32c07793d6997172#file-panel-s6e88a0-ams452ef01-c)
   [`panel-simple-s6e88a0-ams452ef01.c`](https://gist.github.com/Minecrell/bc5fbfc3ba98873d32c07793d6997172#file-panel-simple-s6e88a0-ams452ef01-c)
+  - Precurser to this generator was the work of Rob Clark on the Sony Z3 msm8974 panel drivers with Freedreno:
+  [`panel-auo-novatek-1080p-vid.c`](https://github.com/freedreno/kernel-msm/blob/xperiadev/drivers/gpu/drm/panel/panel-auo-novatek-1080p-vid.c)
+  - Mainlined panel driver:
+  [`panel-samsung-s6e88a0-ams452ef01.c`](https://github.com/torvalds/linux/blob/master/drivers/gpu/drm/panel/panel-samsung-s6e88a0-ams452ef01.c)
+  - Example for msm8974 on how to set up dtsi:
+  [`Sony Z3`](https://github.com/freedreno/kernel-msm/commits/xperiadev/arch/arm/boot/dts)
 
 ## Preparation
 ### Requirements
