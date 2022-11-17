@@ -8,13 +8,6 @@ generate a simple DRM panel driver, for use in mainline together with Freedreno.
 As far as possible, it attempts to generate _clean_ C code, so that only minimal
 changes are necessary for upstreaming the generated panel driver.
 
-**Example:**
-  - Input device tree:
-  [`dsi_panel_S6E88A0_AMS452EF01_qhd_octa_video.dtsi`](https://gist.github.com/Minecrell/56c2b20118ba00a9723f0785301bc5ec#file-dsi_panel_s6e88a0_ams452ef01_qhd_octa_video-dtsi) 
-  - Generated panel driver:
-  [`panel-s6e88a0-ams452ef01.c`](https://gist.github.com/Minecrell/bc5fbfc3ba98873d32c07793d6997172#file-panel-s6e88a0-ams452ef01-c),
-  [`panel-simple-s6e88a0-ams452ef01.c`](https://gist.github.com/Minecrell/bc5fbfc3ba98873d32c07793d6997172#file-panel-simple-s6e88a0-ams452ef01-c)
-
 ## Preparation
 ### Requirements
 - Python 3.7+
