@@ -555,5 +555,5 @@ module_mipi_dsi_driver({p.short_id}_driver);
 
 MODULE_AUTHOR("linux-mdss-dsi-panel-driver-generator <fix@me>"); // FIXME
 MODULE_DESCRIPTION("DRM driver for {p.name}");
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");
 ''')
