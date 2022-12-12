@@ -252,10 +252,10 @@ class Panel:
 
 		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-hfp-power-mode') is not None:
 			self.flags.append('MIPI_DSI_MODE_VIDEO_NO_HFP')
-		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-hsa-power-mode') is not None:
-			self.flags.append('MIPI_DSI_MODE_VIDEO_NO_HSA')
 		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-hbp-power-mode') is not None:
 			self.flags.append('MIPI_DSI_MODE_VIDEO_NO_HBP')
+		if fdt.getprop_or_none(node, 'qcom,mdss-dsi-hsa-power-mode') is not None:
+			self.flags.append('MIPI_DSI_MODE_VIDEO_NO_HSA')
 
 		reset_seq = fdt.getprop_or_none(node, 'qcom,mdss-dsi-reset-sequence')
 		if reset_seq is not None:
@@ -303,9 +303,6 @@ class Panel:
 
 		# Additional weird values used by downstream and LK
 		self.hsync_skew = fdt.getprop_uint32(node, 'qcom,mdss-dsi-h-sync-skew')
-		self.hfp_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-hfp-power-mode') is not None
-		self.hsa_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-hsa-power-mode') is not None
-		self.hbp_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-hbp-power-mode') is not None
 		self.bllp_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bllp-power-mode') is not None
 		self.bllp_eof_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bllp-eof-power-mode') is not None
 		self.lp11_init = fdt.getprop_or_none(node, 'qcom,mdss-dsi-lp11-init') is not None

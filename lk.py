@@ -64,9 +64,9 @@ def generate_video_info(p: Panel) -> str:
 
 	s += f'''\
 	.hsync_pulse = {int('MIPI_DSI_MODE_VIDEO_HSE' in p.flags)},
-	.hfp_power_mode = {int(p.hfp_power_mode)},
-	.hbp_power_mode = {int(p.hbp_power_mode)},
-	.hsa_power_mode = {int(p.hsa_power_mode)},
+	.hfp_power_mode = {int('MIPI_DSI_MODE_VIDEO_NO_HFP' in p.flags)},
+	.hbp_power_mode = {int('MIPI_DSI_MODE_VIDEO_NO_HBP' in p.flags)},
+	.hsa_power_mode = {int('MIPI_DSI_MODE_VIDEO_NO_HSA' in p.flags)},
 	.bllp_eof_power_mode = {int(p.bllp_eof_power_mode)},
 	.bllp_power_mode = {int(p.bllp_power_mode)},
 	.traffic_mode = {list(TrafficMode.__members__.values()).index(p.traffic_mode)},
