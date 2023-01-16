@@ -189,8 +189,6 @@ def _generate_checked_call(method: str, args: List[str], description: str) -> st
 
 
 MACROS = {
-	'dsi_generic_write_seq': 'mipi_dsi_generic_write',
-	'dsi_dcs_write_seq': 'mipi_dsi_dcs_write_buffer',
 }
 
 
@@ -198,7 +196,7 @@ def _generate_generic_write(t: Transaction, payload: bytes, options: Options) ->
 	# TODO: Warn when downstream uses LONG_WRITE but mainline would use SHORT
 	params = _get_params_hex(payload)
 	params.insert(0, 'dsi')
-	return wrap.join('\tdsi_generic_write_seq(', ',', ');', params, force=2)
+	return wrap.join('\tmipi_dsi_generic_write_seq(', ',', ');', params, force=2)
 
 
 def _generate_dcs_write(t: Transaction, payload: bytes, options: Options) -> str:
@@ -213,7 +211,7 @@ def _generate_dcs_write(t: Transaction, payload: bytes, options: Options) -> str
 		params[0] = dcs.identifier
 	params.insert(0, 'dsi')
 
-	return wrap.join('\tdsi_dcs_write_seq(', ',', ');', params, force=2)
+	return wrap.join('\tmipi_dsi_dcs_write_seq(', ',', ');', params, force=2)
 
 
 def _generate_peripheral(t: Transaction, payload: bytes, options: Options) -> str:
