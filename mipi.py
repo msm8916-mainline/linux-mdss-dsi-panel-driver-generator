@@ -188,10 +188,6 @@ def _generate_checked_call(method: str, args: List[str], description: str) -> st
 '''
 
 
-MACROS = {
-}
-
-
 def _generate_generic_write(t: Transaction, payload: bytes, options: Options) -> str:
 	# TODO: Warn when downstream uses LONG_WRITE but mainline would use SHORT
 	params = _get_params_hex(payload)

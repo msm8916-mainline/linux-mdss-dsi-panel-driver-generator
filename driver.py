@@ -72,31 +72,6 @@ def generate_struct(p: Panel, options: Options) -> str:
 	return s
 
 
-def generate_macros(p: Panel) -> str:
-	macros = set()
-	for cmd in p.cmds.values():
-		# Check which macros are necessary
-		for macro in mipi.MACROS.keys():
-			if macro in cmd.generated:
-				macros.add(macro)
-
-	s = ''
-	for macro, expr in mipi.MACROS.items():
-		if not macro in macros:
-			continue
-		s += f'''
-
-#define {macro}(dsi, seq...) do {{				\\
-		static const u8 d[] = {{ seq }};				\\
-		int ret;						\\
-		ret = {expr}(dsi, d, ARRAY_SIZE(d));	\\
-		if (ret < 0)						\\
-			return ret;					\\
-	}} while (0)\
-'''
-	return s
-
-
 # msleep(< 20) will possibly sleep up to 20ms
 # In this case, usleep_range should be used
 def msleep(m: int) -> str:
@@ -493,7 +468,7 @@ def generate_driver(p: Panel, options: Options) -> None:
 {wrap.simple([f'static inline', f'struct {p.short_id} *to_{p.short_id}(struct drm_panel *panel)'])}
 {{
 	return container_of(panel, struct {p.short_id}, panel);
-}}{generate_macros(p)}
+}}
 {generate_reset(p, options)}
 {generate_commands(p, options, 'on')}
 {generate_commands(p, options, 'off')}
