@@ -235,6 +235,10 @@ def generate_backlight(p: Panel, options: Options) -> str:
 	if p.max_brightness > 255:
 		brightness_mask = ''
 
+	brightness_variant = ''
+	if p.max_brightness > 255:
+		brightness_variant = '_large'
+
 	s = f'''\
 static int {p.short_id}_bl_update_status(struct backlight_device *bl)
 {{
@@ -256,7 +260,7 @@ static int {p.short_id}_bl_update_status(struct backlight_device *bl)
 	s += f'''
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
-	ret = mipi_dsi_dcs_set_display_brightness(dsi, brightness);
+	ret = mipi_dsi_dcs_set_display_brightness{brightness_variant}(dsi, brightness);
 	if (ret < 0)
 		return ret;
 
@@ -278,7 +282,7 @@ static int {p.short_id}_bl_get_brightness(struct backlight_device *bl)
 
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
-	ret = mipi_dsi_dcs_get_display_brightness(dsi, &brightness);
+	ret = mipi_dsi_dcs_get_display_brightness{brightness_variant}(dsi, &brightness);
 	if (ret < 0)
 		return ret;
 
