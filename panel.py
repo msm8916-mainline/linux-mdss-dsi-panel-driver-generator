@@ -315,13 +315,10 @@ class Panel:
 
 	@staticmethod
 	def find(fdt: Fdt2) -> Iterator[int]:
-		for mdp in fdt.find_by_compatible('qcom,mdss_mdp'):
-			for sub in fdt.subnodes(mdp):
-				yield sub
-
-		for mdp in fdt.find_by_compatible('qcom,sde-kms'):
-			for sub in fdt.subnodes(mdp):
-				yield sub
+		for compatible in ['qcom,mdss_mdp', 'qcom,mdss_mdp3', 'qcom,sde-kms']:
+			for mdp in fdt.find_by_compatible(compatible):
+				for sub in fdt.subnodes(mdp):
+					yield sub
 
 		# Newer device trees do not necessarily have panels below MDP,
 		# search for qcom,dsi-display node instead
