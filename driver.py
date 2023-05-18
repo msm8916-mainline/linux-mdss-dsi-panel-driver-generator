@@ -454,6 +454,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	dsc->dsc_version_major = {p.dsc_version};
 	dsc->dsc_version_minor = {p.dsc_scr_version};
 
+	// TODO: Pass slice_per_pkt = {p.dsc_slice_per_pkt}
 	dsc->slice_height = {p.dsc_slice_height};
 	dsc->slice_width = {p.dsc_slice_width};
 	dsc->slice_count = 1; // TODO: fix this value
