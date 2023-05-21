@@ -213,16 +213,20 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 	if p.has_dsc:
 		s += '''
 	if (ctx->dsi->dsc) {
-		/* this panel uses DSC so send the pps */
 		drm_dsc_pps_payload_pack(&pps, ctx->dsi->dsc);
-		print_hex_dump(KERN_DEBUG, "DSC params:", DUMP_PREFIX_NONE,
-			       16, 1, &pps, sizeof(pps), false);
 
 		ret = mipi_dsi_picture_parameter_set(ctx->dsi, &pps);
 		if (ret < 0) {
-			dev_err(panel->dev, "failed to set pps: %d\\n", ret);
+			dev_err(panel->dev, "failed to transmit PPS: %d\\n", ret);
 			return ret;
 		}
+
+		ret = mipi_dsi_compression_mode(ctx->dsi, true);
+		if (ret < 0) {
+			dev_err(dev, "failed to enable compression mode: %d\\n", ret);
+			return ret;
+		}
+
 		msleep(28); /* TODO: Is this panel-dependent? */
 	}
 '''
