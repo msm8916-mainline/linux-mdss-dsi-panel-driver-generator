@@ -226,7 +226,11 @@ class Panel:
 		self.traffic_mode = TrafficMode.parse(fdt.getprop(node, 'qcom,mdss-dsi-traffic-mode'))
 
 		backlight = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bl-pmic-control-type')
-		self.backlight = BacklightControl(backlight.as_str()) if backlight else None
+		# FIXME https://android.googlesource.com/kernel/msm/+/52edb91eb65ab5e84fd98061057d3ffa2074ffc1
+		backlight_str = backlight.as_str()
+		if backlight_str == "bl_ctrl_dcs_l":
+			backlight_str = "bl_ctrl_dcs"
+		self.backlight = BacklightControl(backlight_str) if backlight else None
 		self.max_brightness = fdt.getprop_uint32(node, 'qcom,mdss-dsi-bl-max-level', None)
 		if self.backlight == BacklightControl.DCS and self.max_brightness is None:
 			print("WARNING: DCS backlight without maximum brightness, ignoring...")
