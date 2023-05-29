@@ -460,7 +460,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 
 	if p.has_dsc:
 		s += f'''
-	dsc = devm_kzalloc(&dsi->dev, sizeof(*dsc), GFP_KERNEL);
+	dsc = devm_kzalloc(dev, sizeof(*dsc), GFP_KERNEL);
 	if (!dsc)
 		return -ENOMEM;
 
