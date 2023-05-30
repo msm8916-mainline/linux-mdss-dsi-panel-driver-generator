@@ -58,6 +58,9 @@ def generate_struct(p: Panel, options: Options) -> str:
 		'struct mipi_dsi_device *dsi',
 	]
 
+	if p.has_dsc:
+		variables.append('struct drm_dsc_config dsc')
+
 	if options.regulator:
 		if len(options.regulator) > 1:
 			variables.append(f'struct regulator_bulk_data supplies[{len(options.regulator)}]')
@@ -212,23 +215,21 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 
 	if p.has_dsc:
 		s += '''
-	if (ctx->dsi->dsc) {
-		drm_dsc_pps_payload_pack(&pps, ctx->dsi->dsc);
+	drm_dsc_pps_payload_pack(&pps, &ctx->dsc);
 
-		ret = mipi_dsi_picture_parameter_set(ctx->dsi, &pps);
-		if (ret < 0) {
-			dev_err(panel->dev, "failed to transmit PPS: %d\\n", ret);
-			return ret;
-		}
-
-		ret = mipi_dsi_compression_mode(ctx->dsi, true);
-		if (ret < 0) {
-			dev_err(dev, "failed to enable compression mode: %d\\n", ret);
-			return ret;
-		}
-
-		msleep(28); /* TODO: Is this panel-dependent? */
+	ret = mipi_dsi_picture_parameter_set(ctx->dsi, &pps);
+	if (ret < 0) {
+		dev_err(panel->dev, "failed to transmit PPS: %d\\n", ret);
+		return ret;
 	}
+
+	ret = mipi_dsi_compression_mode(ctx->dsi, true);
+	if (ret < 0) {
+		dev_err(dev, "failed to enable compression mode: %d\\n", ret);
+		return ret;
+	}
+
+	msleep(28); /* TODO: Is this panel-dependent? */
 '''
 
 	s += '''
@@ -361,11 +362,6 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	struct device *dev = &dsi->dev;
 	struct {p.short_id} *ctx;'''
 
-	if p.has_dsc:
-		s += '''
-	struct drm_dsc_config *dsc;
-'''
-
 	s += f'''
 	int ret;
 
@@ -460,24 +456,24 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 
 	if p.has_dsc:
 		s += f'''
-	dsc = devm_kzalloc(dev, sizeof(*dsc), GFP_KERNEL);
-	if (!dsc)
-		return -ENOMEM;
+	/* This panel only supports DSC; unconditionally enable it */
+	dsi->dsc = &ctx->dsc;
 
-	dsc->dsc_version_major = {p.dsc_version};
-	dsc->dsc_version_minor = {p.dsc_scr_version};
+	ctx->dsc.dsc_version_major = {p.dsc_version};
+	ctx->dsc.dsc_version_minor = {p.dsc_scr_version};
 
 	// TODO: Pass slice_per_pkt = {p.dsc_slice_per_pkt}
-	dsc->slice_height = {p.dsc_slice_height};
-	dsc->slice_width = {p.dsc_slice_width};
-	// TODO: Get hdisplay from the mode
-	BUG_ON({p.h.px} % dsc->slice_width);
-	dsc->slice_count = {p.h.px} / dsc->slice_width;
-	dsc->bits_per_component = {p.dsc_bit_per_component};
-	dsc->bits_per_pixel = {p.dsc_bit_per_pixel} << 4; /* 4 fractional bits */
-	dsc->block_pred_enable = {"true" if p.dsc_dsc_block_prediction else "false"};
-
-	dsi->dsc = dsc;
+	ctx->dsc.slice_height = {p.dsc_slice_height};
+	ctx->dsc.slice_width = {p.dsc_slice_width};
+	/*
+	 * hdisplay should be read from the selected mode once
+	 * it is passed back to drm_panel (in prepare?)
+	 */
+	WARN_ON({p.h.px} % ctx->dsc.slice_width);
+	ctx->dsc.slice_count = {p.h.px} / ctx->dsc.slice_width;
+	ctx->dsc.bits_per_component = {p.dsc_bit_per_component};
+	ctx->dsc.bits_per_pixel = {p.dsc_bit_per_pixel} << 4; /* 4 fractional bits */
+	ctx->dsc.block_pred_enable = {"true" if p.dsc_dsc_block_prediction else "false"};
 '''
 
 	s += '''
