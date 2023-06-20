@@ -34,7 +34,7 @@ def generate_panel_dtsi(p: Panel, options: Options) -> None:
 
 ''')
 		f.write(f'''\
-&dsi0 {{
+&mdss_dsi0 {{
 	panel@0 {{
 		compatible = "{options.compatible}";
 		reg = <0>;
@@ -45,13 +45,13 @@ def generate_panel_dtsi(p: Panel, options: Options) -> None:
 
 		port {{
 			panel_in: endpoint {{
-				remote-endpoint = <&dsi0_out>;
+				remote-endpoint = <&mdss_dsi0_out>;
 			}};
 		}};
 	}};
 }};
 
-&dsi0_out {{
+&mdss_dsi0_out {{
 	data-lanes = <{' '.join(map(str, p.lane_map.phys2log[:p.lanes]))}>;
 	remote-endpoint = <&panel_in>;
 }};
@@ -59,13 +59,13 @@ def generate_panel_dtsi(p: Panel, options: Options) -> None:
 
 		if p.ldo_mode:
 			f.write('''
-&dsi_phy0 {
+&mdss_dsi0_phy {
 	qcom,dsi-phy-regulator-ldo-mode;
 };
 ''')
 		if p.cphy_mode:
 			f.write('''
-&dsi0_phy {
+&mdss_dsi0_phy {
     phy-type = <PHY_TYPE_CPHY>;
 };
 ''')
