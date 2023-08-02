@@ -374,6 +374,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 
 	drm_panel_init(&ctx->panel, dev, &{p.short_id}_panel_funcs,
 		       DRM_MODE_CONNECTOR_DSI);
+	ctx->panel.prepare_prev_first = true;
 '''
 
 	if options.backlight_fallback_dcs:
