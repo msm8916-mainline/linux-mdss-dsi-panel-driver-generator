@@ -21,7 +21,7 @@ def generate_gpios(options: Options):
 	s = ""
 	for name, flags in options.gpios.items():
 		flags = "GPIO_ACTIVE_LOW" if flags & GpioFlag.ACTIVE_LOW else "GPIO_ACTIVE_HIGH"
-		s += f"\t\t{name}-gpios = <&msmgpio XY {flags}>;\n"
+		s += f"\t\t{name}-gpios = <&tlmm XY {flags}>;\n"
 	return s
 
 
