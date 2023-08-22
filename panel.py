@@ -156,6 +156,10 @@ class CommandSequence:
 			if init:
 				itr = itertools.chain(init, itr)
 
+			on = fdt.getprop_or_none(node, 'qcom,mdss-dsi-post-panel-on-command')
+			if on:
+				itr = itertools.chain(itr, on)
+
 			on = fdt.getprop_or_none(node, 'lge,display-on-cmds')
 			if on:
 				itr = itertools.chain(itr, on)
