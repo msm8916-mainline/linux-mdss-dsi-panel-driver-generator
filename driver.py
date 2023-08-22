@@ -445,13 +445,6 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 
 	s += '''
 	drm_panel_add(&ctx->panel);
-
-	ret = mipi_dsi_attach(dsi);
-	if (ret < 0) {
-		dev_err(dev, "Failed to attach to DSI host: %d\\n", ret);
-		drm_panel_remove(&ctx->panel);
-		return ret;
-	}
 '''
 
 	if p.has_dsc:
@@ -474,6 +467,15 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	ctx->dsc.bits_per_component = {p.dsc_bit_per_component};
 	ctx->dsc.bits_per_pixel = {p.dsc_bit_per_pixel} << 4; /* 4 fractional bits */
 	ctx->dsc.block_pred_enable = {"true" if p.dsc_dsc_block_prediction else "false"};
+'''
+
+	s += '''
+	ret = mipi_dsi_attach(dsi);
+	if (ret < 0) {
+		dev_err(dev, "Failed to attach to DSI host: %d\\n", ret);
+		drm_panel_remove(&ctx->panel);
+		return ret;
+	}
 '''
 
 	s += '''
