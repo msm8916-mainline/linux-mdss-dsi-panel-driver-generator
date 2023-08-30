@@ -160,6 +160,10 @@ class CommandSequence:
 			if on:
 				itr = itertools.chain(itr, on)
 
+			on = fdt.getprop_or_none(node, 'qcom,mdss-dsi-post-on-backlight')
+			if on:
+				itr = itertools.chain(itr, on)
+
 			on = fdt.getprop_or_none(node, 'lge,display-on-cmds')
 			if on:
 				itr = itertools.chain(itr, on)
