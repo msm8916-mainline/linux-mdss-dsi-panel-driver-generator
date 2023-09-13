@@ -97,6 +97,11 @@ class BacklightControl(Enum):
 	SAMSUNG_PWM = 'bl_ctrl_ss_pwm'
 
 
+@unique
+class CompressionMode(Enum):
+	DSC = "dsc"
+
+
 class Dimension:
 	@unique
 	class Type(Enum):
@@ -309,36 +314,19 @@ class Panel:
 		self.init_delay = fdt.getprop_uint32(node, 'qcom,mdss-dsi-init-delay-us')
 
 		# Display Stream Compression
-		self.compression_mode = fdt.getprop_or_none(mode_node, 'qcom,compression-mode')
-		self.has_dsc = self.compression_mode is not None and self.compression_mode.as_str() == "dsc"
+		compression_mode = fdt.getprop_or_none(mode_node, 'qcom,compression-mode')
+		self.compression_mode = CompressionMode(compression_mode.as_str()) if compression_mode else None
 
-		if self.has_dsc:
-			#self.dsc_lm_split = fdt.getprop_or_none(mode_node, 'qcom,lm-split')
-			dsc_encoders = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-encoders')
-			self.dsc_encoders = dsc_encoders.as_int32() if dsc_encoders else None
+		if self.compression_mode == CompressionMode.DSC:
+			self.dsc_slice_height = fdt.getprop(mode_node, 'qcom,mdss-dsc-slice-height').as_uint32()
+			self.dsc_slice_width = fdt.getprop(mode_node, 'qcom,mdss-dsc-slice-width').as_uint32()
+			self.dsc_slice_per_pkt = fdt.getprop(mode_node, 'qcom,mdss-dsc-slice-per-pkt').as_uint32()
+			self.dsc_bit_per_component = fdt.getprop(mode_node, 'qcom,mdss-dsc-bit-per-component').as_uint32()
+			self.dsc_bit_per_pixel = fdt.getprop(mode_node, 'qcom,mdss-dsc-bit-per-pixel').as_uint32()
+			self.dsc_block_prediction = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-block-prediction-enable') is not None
 
-			dsc_slice_height = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-slice-height')
-			self.dsc_slice_height = dsc_slice_height.as_int32() if dsc_slice_height else None
-
-			dsc_slice_width = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-slice-width')
-			self.dsc_slice_width = dsc_slice_width.as_int32() if dsc_slice_width else None
-
-			dsc_slice_per_pkt = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-slice-per-pkt')
-			self.dsc_slice_per_pkt = dsc_slice_per_pkt.as_int32() if dsc_slice_per_pkt else None
-
-			dsc_bit_per_component = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-bit-per-component')
-			self.dsc_bit_per_component = dsc_bit_per_component.as_int32() if dsc_bit_per_component else None
-
-			dsc_bit_per_pixel = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-bit-per-pixel')
-			self.dsc_bit_per_pixel = dsc_bit_per_pixel.as_int32() if dsc_bit_per_pixel else None
-
-			self.dsc_dsc_block_prediction = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-block-prediction-enable') is not None
-
-			dsc_version = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-version')
-			self.dsc_version = dsc_version.as_int32() if dsc_version else 1
-
-			dsc_scr_version = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-scr-version')
-			self.dsc_scr_version = dsc_scr_version.as_int32() if dsc_scr_version else 1
+			self.dsc_version = fdt.getprop_uint32(mode_node, 'qcom,mdss-dsc-version', default=1)
+			self.dsc_scr_version = fdt.getprop_uint32(mode_node, 'qcom,mdss-dsc-scr-version', default=1)
 
 	@staticmethod
 	def parse(fdt: Fdt2, node: int) -> Panel:
