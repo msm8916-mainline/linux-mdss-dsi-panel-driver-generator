@@ -7,7 +7,7 @@ import mipi
 import simple
 import wrap
 from generator import Options, GpioFlag
-from panel import Panel, BacklightControl, CommandSequence
+from panel import Panel, BacklightControl, CommandSequence, CompressionMode
 
 
 def generate_includes(p: Panel, options: Options) -> str:
@@ -31,6 +31,9 @@ def generate_includes(p: Panel, options: Options) -> str:
 		includes['linux'].add('regulator/consumer.h')
 	if p.backlight == BacklightControl.DCS or options.backlight_fallback_dcs:
 		includes['linux'].add('backlight.h')
+	if p.compression_mode == CompressionMode.DSC:
+		includes['drm'].add('display/drm_dsc.h')
+		includes['drm'].add('display/drm_dsc_helper.h')
 
 	for cmd in p.cmds.values():
 		if 'MIPI_DCS_' in cmd.generated:
@@ -54,6 +57,9 @@ def generate_struct(p: Panel, options: Options) -> str:
 		'struct drm_panel panel',
 		'struct mipi_dsi_device *dsi',
 	]
+
+	if p.compression_mode == CompressionMode.DSC:
+		variables.append('struct drm_dsc_config dsc')
 
 	if options.regulator:
 		if len(options.regulator) > 1:
@@ -164,6 +170,14 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 {{
 	struct {p.short_id} *ctx = to_{p.short_id}(panel);
 	struct device *dev = &ctx->dsi->dev;
+'''
+
+	if p.compression_mode == CompressionMode.DSC:
+		s += '''\
+	struct drm_dsc_picture_parameter_set pps;
+'''
+
+	s += f'''\
 	int ret;
 
 	if (ctx->prepared)
@@ -197,10 +211,31 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 		dev_err(dev, "Failed to initialize panel: %d\\n", ret);{generate_cleanup(p, options, 2)}
 		return ret;
 	}}
+'''
 
+	if p.compression_mode == CompressionMode.DSC:
+		s += '''
+	drm_dsc_pps_payload_pack(&pps, &ctx->dsc);
+
+	ret = mipi_dsi_picture_parameter_set(ctx->dsi, &pps);
+	if (ret < 0) {
+		dev_err(panel->dev, "failed to transmit PPS: %d\\n", ret);
+		return ret;
+	}
+
+	ret = mipi_dsi_compression_mode(ctx->dsi, true);
+	if (ret < 0) {
+		dev_err(dev, "failed to enable compression mode: %d\\n", ret);
+		return ret;
+	}
+
+	msleep(28); /* TODO: Is this panel-dependent? */
+'''
+
+	s += '''
 	ctx->prepared = true;
 	return 0;
-}}
+}
 '''
 	return s
 
@@ -325,6 +360,9 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 {{
 	struct device *dev = &dsi->dev;
 	struct {p.short_id} *ctx;
+'''
+
+	s += f'''\
 	int ret;
 
 	ctx = devm_kzalloc(dev, sizeof(*ctx), GFP_KERNEL);
@@ -407,14 +445,40 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 
 	s += '''
 	drm_panel_add(&ctx->panel);
+'''
 
+	if p.compression_mode == CompressionMode.DSC:
+		s += f'''
+	/* This panel only supports DSC; unconditionally enable it */
+	dsi->dsc = &ctx->dsc;
+
+	ctx->dsc.dsc_version_major = {(p.dsc_version >> 4) & 0xf};
+	ctx->dsc.dsc_version_minor = {p.dsc_version & 0xf};
+
+	/* TODO: Pass slice_per_pkt = {p.dsc_slice_per_pkt} */
+	ctx->dsc.slice_height = {p.dsc_slice_height};
+	ctx->dsc.slice_width = {p.dsc_slice_width};
+	/*
+	 * TODO: hdisplay should be read from the selected mode once
+	 * it is passed back to drm_panel (in prepare?)
+	 */
+	WARN_ON({p.h.px} % ctx->dsc.slice_width);
+	ctx->dsc.slice_count = {p.h.px} / ctx->dsc.slice_width;
+	ctx->dsc.bits_per_component = {p.dsc_bit_per_component};
+	ctx->dsc.bits_per_pixel = {p.dsc_bit_per_pixel} << 4; /* 4 fractional bits */
+	ctx->dsc.block_pred_enable = {"true" if p.dsc_block_prediction else "false"};
+'''
+
+	s += '''
 	ret = mipi_dsi_attach(dsi);
 	if (ret < 0) {
 		dev_err(dev, "Failed to attach to DSI host: %d\\n", ret);
 		drm_panel_remove(&ctx->panel);
 		return ret;
 	}
+'''
 
+	s += '''
 	return 0;
 }
 '''

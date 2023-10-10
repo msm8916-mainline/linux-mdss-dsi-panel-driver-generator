@@ -97,6 +97,11 @@ class BacklightControl(Enum):
 	SAMSUNG_PWM = 'bl_ctrl_ss_pwm'
 
 
+@unique
+class CompressionMode(Enum):
+	DSC = "dsc"
+
+
 class Dimension:
 	@unique
 	class Type(Enum):
@@ -307,6 +312,21 @@ class Panel:
 		self.bllp_eof_power_mode = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bllp-eof-power-mode') is not None
 		self.lp11_init = fdt.getprop_or_none(node, 'qcom,mdss-dsi-lp11-init') is not None
 		self.init_delay = fdt.getprop_uint32(node, 'qcom,mdss-dsi-init-delay-us')
+
+		# Display Stream Compression
+		compression_mode = fdt.getprop_or_none(mode_node, 'qcom,compression-mode')
+		self.compression_mode = CompressionMode(compression_mode.as_str()) if compression_mode else None
+
+		if self.compression_mode == CompressionMode.DSC:
+			self.dsc_slice_height = fdt.getprop(mode_node, 'qcom,mdss-dsc-slice-height').as_uint32()
+			self.dsc_slice_width = fdt.getprop(mode_node, 'qcom,mdss-dsc-slice-width').as_uint32()
+			self.dsc_slice_per_pkt = fdt.getprop(mode_node, 'qcom,mdss-dsc-slice-per-pkt').as_uint32()
+			self.dsc_bit_per_component = fdt.getprop(mode_node, 'qcom,mdss-dsc-bit-per-component').as_uint32()
+			self.dsc_bit_per_pixel = fdt.getprop(mode_node, 'qcom,mdss-dsc-bit-per-pixel').as_uint32()
+			self.dsc_block_prediction = fdt.getprop_or_none(mode_node, 'qcom,mdss-dsc-block-prediction-enable') is not None
+
+			self.dsc_version = fdt.getprop_uint32(mode_node, 'qcom,mdss-dsc-version', default=0x11)
+			self.dsc_scr_version = fdt.getprop_uint32(mode_node, 'qcom,mdss-dsc-scr-version', default=0)
 
 	@staticmethod
 	def parse(fdt: Fdt2, node: int) -> Panel:
