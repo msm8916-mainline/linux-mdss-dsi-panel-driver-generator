@@ -22,6 +22,7 @@ def generate_includes(p: Panel, options: Options) -> str:
 			'drm_mipi_dsi.h',
 			'drm_modes.h',
 			'drm_panel.h',
+			'drm_probe_helper.h',
 		},
 	}
 
@@ -537,20 +538,7 @@ def generate_driver(p: Panel, options: Options) -> None:
 {simple.generate_mode(p)}
 {wrap.join(f'static int {p.short_id}_get_modes(', ',', ')', ['struct drm_panel *panel', 'struct drm_connector *connector'])}
 {{
-	struct drm_display_mode *mode;
-
-	mode = drm_mode_duplicate(connector->dev, &{p.short_id}_mode);
-	if (!mode)
-		return -ENOMEM;
-
-	drm_mode_set_name(mode);
-
-	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
-	connector->display_info.width_mm = mode->width_mm;
-	connector->display_info.height_mm = mode->height_mm;
-	drm_mode_probed_add(connector, mode);
-
-	return 1;
+	return drm_connector_helper_get_modes_fixed(connector, &{p.short_id}_mode);
 }}
 
 static const struct drm_panel_funcs {p.short_id}_panel_funcs = {{
