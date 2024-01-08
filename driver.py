@@ -67,7 +67,6 @@ def generate_struct(p: Panel, options: Options) -> str:
 		else:
 			variables.append('struct regulator *supply')
 	variables += [f'struct gpio_desc *{name}_gpio' for name in options.gpios.keys()]
-	variables.append('bool prepared')
 
 	s = f'struct {p.short_id} {{'
 	for v in variables:
@@ -179,9 +178,6 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 
 	s += f'''\
 	int ret;
-
-	if (ctx->prepared)
-		return 0;
 '''
 
 	if options.regulator:
@@ -233,7 +229,6 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 '''
 
 	s += '''
-	ctx->prepared = true;
 	return 0;
 }
 '''
@@ -248,15 +243,11 @@ static int {p.short_id}_unprepare(struct drm_panel *panel)
 	struct device *dev = &ctx->dsi->dev;
 	int ret;
 
-	if (!ctx->prepared)
-		return 0;
-
 	ret = {p.short_id}_off(ctx);
 	if (ret < 0)
 		dev_err(dev, "Failed to un-initialize panel: %d\\n", ret);
 {generate_cleanup(p, options)}
 
-	ctx->prepared = false;
 	return 0;
 }}
 '''
