@@ -22,6 +22,7 @@ def generate_includes(p: Panel, options: Options) -> str:
 			'drm_mipi_dsi.h',
 			'drm_modes.h',
 			'drm_panel.h',
+			'drm_probe_helper.h',
 		},
 	}
 
@@ -67,7 +68,6 @@ def generate_struct(p: Panel, options: Options) -> str:
 		else:
 			variables.append('struct regulator *supply')
 	variables += [f'struct gpio_desc *{name}_gpio' for name in options.gpios.keys()]
-	variables.append('bool prepared')
 
 	s = f'struct {p.short_id} {{'
 	for v in variables:
@@ -179,9 +179,6 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 
 	s += f'''\
 	int ret;
-
-	if (ctx->prepared)
-		return 0;
 '''
 
 	if options.regulator:
@@ -233,7 +230,6 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 '''
 
 	s += '''
-	ctx->prepared = true;
 	return 0;
 }
 '''
@@ -248,15 +244,11 @@ static int {p.short_id}_unprepare(struct drm_panel *panel)
 	struct device *dev = &ctx->dsi->dev;
 	int ret;
 
-	if (!ctx->prepared)
-		return 0;
-
 	ret = {p.short_id}_off(ctx);
 	if (ret < 0)
 		dev_err(dev, "Failed to un-initialize panel: %d\\n", ret);
 {generate_cleanup(p, options)}
 
-	ctx->prepared = false;
 	return 0;
 }}
 '''
@@ -472,9 +464,8 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	s += '''
 	ret = mipi_dsi_attach(dsi);
 	if (ret < 0) {
-		dev_err(dev, "Failed to attach to DSI host: %d\\n", ret);
 		drm_panel_remove(&ctx->panel);
-		return ret;
+		return dev_err_probe(dev, ret, "Failed to attach to DSI host\\n");
 	}
 '''
 
@@ -546,20 +537,7 @@ def generate_driver(p: Panel, options: Options) -> None:
 {simple.generate_mode(p)}
 {wrap.join(f'static int {p.short_id}_get_modes(', ',', ')', ['struct drm_panel *panel', 'struct drm_connector *connector'])}
 {{
-	struct drm_display_mode *mode;
-
-	mode = drm_mode_duplicate(connector->dev, &{p.short_id}_mode);
-	if (!mode)
-		return -ENOMEM;
-
-	drm_mode_set_name(mode);
-
-	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
-	connector->display_info.width_mm = mode->width_mm;
-	connector->display_info.height_mm = mode->height_mm;
-	drm_mode_probed_add(connector, mode);
-
-	return 1;
+	return drm_connector_helper_get_modes_fixed(connector, &{p.short_id}_mode);
 }}
 
 static const struct drm_panel_funcs {p.short_id}_panel_funcs = {{

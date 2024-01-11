@@ -19,6 +19,7 @@ static const struct drm_display_mode {p.short_id}_mode = {{
 	.vtotal = {p.v.px} + {p.v.fp} + {p.v.pw} + {p.v.bp},
 	.width_mm = {p.h.size},
 	.height_mm = {p.v.size},
+	.type = DRM_MODE_TYPE_DRIVER,
 }};
 '''
 
