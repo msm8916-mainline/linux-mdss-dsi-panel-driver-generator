@@ -235,10 +235,10 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 '''
 	return s
 
+def generate_disable(p: Panel, options: Options) -> str:
 
-def generate_unprepare(p: Panel, options: Options) -> str:
 	return f'''\
-static int {p.short_id}_unprepare(struct drm_panel *panel)
+static int {p.short_id}_disable(struct drm_panel *panel)
 {{
 	struct {p.short_id} *ctx = to_{p.short_id}(panel);
 	struct device *dev = &ctx->dsi->dev;
@@ -247,6 +247,16 @@ static int {p.short_id}_unprepare(struct drm_panel *panel)
 	ret = {p.short_id}_off(ctx);
 	if (ret < 0)
 		dev_err(dev, "Failed to un-initialize panel: %d\\n", ret);
+
+	return 0;
+}}
+'''
+
+def generate_unprepare(p: Panel, options: Options) -> str:
+	return f'''\
+static int {p.short_id}_unprepare(struct drm_panel *panel)
+{{
+	struct {p.short_id} *ctx = to_{p.short_id}(panel);
 {generate_cleanup(p, options)}
 
 	return 0;
@@ -534,6 +544,7 @@ def generate_driver(p: Panel, options: Options) -> None:
 {generate_commands(p, options, 'off')}
 {generate_prepare(p, options)}
 {generate_unprepare(p, options)}
+{generate_disable(p, options)}
 {simple.generate_mode(p)}
 {wrap.join(f'static int {p.short_id}_get_modes(', ',', ')', ['struct drm_panel *panel', 'struct drm_connector *connector'])}
 {{
@@ -543,6 +554,7 @@ def generate_driver(p: Panel, options: Options) -> None:
 static const struct drm_panel_funcs {p.short_id}_panel_funcs = {{
 	.prepare = {p.short_id}_prepare,
 	.unprepare = {p.short_id}_unprepare,
+	.disable = {p.short_id}_disable,
 	.get_modes = {p.short_id}_get_modes,
 }};
 
