@@ -202,7 +202,9 @@ static struct panel_timing {p.id}_timing_info = {{
 	panel->panelresetseq = {f'&{p.id}_reset_seq' if p.reset_seq else 'NULL'};
 	panel->backlightinfo = {f'&{p.id}_backlight' if p.backlight else 'NULL'};
 	pinfo->mipi.panel_on_cmds = {p.id}_on_command;
+	pinfo->mipi.panel_off_cmds = {p.id}_off_command;
 	pinfo->mipi.num_of_panel_on_cmds = ARRAY_SIZE({p.id}_on_command);
+	pinfo->mipi.num_of_panel_off_cmds = ARRAY_SIZE({p.id}_off_command);
 	memcpy(phy_db->timing, {p.id}_timings, TIMING_SIZE);
 	phy_db->regulator_mode = {'DSI_PHY_REGULATOR_LDO_MODE' if p.ldo_mode else 'DSI_PHY_REGULATOR_DCDC_MODE'};
 }}
