@@ -340,6 +340,9 @@ class Panel:
 				for sub in fdt.subnodes(mdp):
 					yield sub
 
+		for mdp in fdt.find_by_path("/soc"):
+			for sub in fdt.subnodes(mdp):
+				yield sub
 		# Newer device trees do not necessarily have panels below MDP,
 		# search for qcom,dsi-display node instead
 		panel_phandles = set()
