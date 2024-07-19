@@ -64,6 +64,9 @@ parser.add_argument('--dumb-dcs', dest='dumb_dcs', action='store_true', help="""
 	enter/exit_sleep_mode and set_display_on/off (which should be supported by
 	any panel ideally).
 """)
+parser.add_argument('--optional-reset-gpio', dest='optional_reset', action='store_true',help="""
+	Use dev_gpiod_get_optional for reset GPIO.
+""")
 args = parser.parse_args(namespace=generator.Options())
 
 for f in args.dtb:

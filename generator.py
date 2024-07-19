@@ -21,6 +21,7 @@ class Options:
 	dcs_get_brightness: bool
 	ignore_wait: int
 	dumb_dcs: bool
+	optional_reset: bool
 
 	# Added by panel driver generator
 	compatible: str
