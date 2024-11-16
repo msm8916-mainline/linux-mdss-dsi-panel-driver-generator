@@ -210,9 +210,7 @@ def _generate_peripheral(t: Transaction, payload: bytes, options: Options) -> st
 
 
 def _generate_compression_mode(t: Transaction, payload: bytes, options: Options) -> str:
-	return _generate_call('mipi_dsi_compression_mode_ext_multi',
-			['&dsi_ctx', str(bool(payload[0])).lower(),
-			'MIPI_DSI_COMPRESSION_DSC', '0']) # TODO: Do we need something != 0?
+	return _generate_call('mipi_dsi_compression_mode_multi', ['&dsi_ctx', str(bool(payload[0])).lower()])
 
 
 def _generate_ignore(t: Transaction, payload: bytes, options: Options) -> str:
