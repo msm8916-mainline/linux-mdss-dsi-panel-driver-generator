@@ -64,7 +64,7 @@ def generate_struct(p: Panel, options: Options) -> str:
 
 	if options.regulator:
 		if len(options.regulator) > 1:
-			variables.append(f'struct regulator_bulk_data supplies[{len(options.regulator)}]')
+			variables.append(f'struct regulator_bulk_data *supplies')
 		else:
 			variables.append('struct regulator *supply')
 	variables += [f'struct gpio_desc *{name}_gpio' for name in options.gpios.keys()]
@@ -74,6 +74,18 @@ def generate_struct(p: Panel, options: Options) -> str:
 		s += '\n'
 		if v:
 			s += '\t' + v + ';'
+	s += '\n};'
+	return s
+
+
+def generate_regulator_bulk(p: Panel, options: Options) -> str:
+	if not options.regulator or len(options.regulator) == 1:
+		return ''
+
+	s = '\n\n'
+	s += f'static const struct regulator_bulk_data {p.short_id}_supplies[] = {{'
+	for r in options.regulator:
+		s += f'\n\t{{ .supply = "{r}" }},'
 	s += '\n};'
 	return s
 
@@ -153,7 +165,7 @@ def generate_cleanup(p: Panel, options: Options, indent: int = 1) -> str:
 		cleanup.append('gpiod_set_value_cansleep(ctx->reset_gpio, 1);')
 	if options.regulator:
 		if len(options.regulator) > 1:
-			cleanup.append('regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);')
+			cleanup.append(f'regulator_bulk_disable(ARRAY_SIZE({p.short_id}_supplies), ctx->supplies);')
 		else:
 			cleanup.append('regulator_disable(ctx->supply);')
 
@@ -183,12 +195,12 @@ static int {p.short_id}_prepare(struct drm_panel *panel)
 
 	if options.regulator:
 		if len(options.regulator) > 1:
-			s += '''
-	ret = regulator_bulk_enable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
-	if (ret < 0) {
+			s += f'''
+	ret = regulator_bulk_enable(ARRAY_SIZE({p.short_id}_supplies), ctx->supplies);
+	if (ret < 0) {{
 		dev_err(dev, "Failed to enable regulators: %d\\n", ret);
 		return ret;
-	}
+	}}
 '''
 		else:
 			s += '''
@@ -364,14 +376,13 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 
 	if options.regulator:
 		if len(options.regulator) > 1:
-			i = 0
-			for i, r in enumerate(options.regulator):
-				s += f'\n\tctx->supplies[{i}].supply = "{r}";'
 			s += f'''
-	ret = devm_regulator_bulk_get(dev, ARRAY_SIZE(ctx->supplies),
-				      ctx->supplies);
+	ret = devm_regulator_bulk_get_const(dev,
+					    ARRAY_SIZE({p.short_id}_supplies),
+					    {p.short_id}_supplies,
+					    &ctx->supplies);
 	if (ret < 0)
-		return dev_err_probe(dev, ret, "Failed to get regulators\\n");
+		return ret;
 '''
 		else:
 			s += f'''
@@ -523,7 +534,7 @@ def generate_driver(p: Panel, options: Options) -> None:
 //   Copyright (c) 2013, The Linux Foundation. All rights reserved. (FIXME)
 {generate_includes(p, options)}
 
-{generate_struct(p, options)}
+{generate_struct(p, options)}{generate_regulator_bulk(p, options)}
 
 {wrap.simple([f'static inline', f'struct {p.short_id} *to_{p.short_id}(struct drm_panel *panel)'])}
 {{
