@@ -213,6 +213,14 @@ def _generate_compression_mode(t: Transaction, payload: bytes, options: Options)
 	return _generate_call('mipi_dsi_compression_mode_multi', ['&dsi_ctx', str(bool(payload[0])).lower()])
 
 
+def _generate_picture_parameter_set(t: Transaction, payload: bytes, options: Options) -> str:
+	text = f'\t// TODO: Autogenerate `struct drm_dsc_picture_parameter_set` via `drm_dsc_pps_payload_pack()`\n'
+	text += wrap.join(f'\tconst u8 pps[{hex(len(payload))}] = {{', ',', '};\n', _get_params_hex(payload), force=0)
+
+	return text + _generate_checked_call('mipi_dsi_picture_parameter_set', ['dsi', '(const struct drm_dsc_picture_parameter_set *)pps'],
+								  'picture parameter set')
+
+
 def _generate_ignore(t: Transaction, payload: bytes, options: Options) -> str:
 	print(f"WARNING: Ignoring weird {t.name}")
 	return f"\t// WARNING: Ignoring weird {t.name}"
@@ -259,7 +267,7 @@ class Transaction(Enum):
 	GENERIC_LONG_WRITE = 0x29, -1, _generate_generic_write
 	DCS_LONG_WRITE = 0x39, -1, _generate_dcs_write
 
-	PICTURE_PARAMETER_SET = 0x0a,
+	PICTURE_PARAMETER_SET = 0x0a, -1, _generate_picture_parameter_set
 	COMPRESSED_PIXEL_STREAM = 0x0b,
 
 	LOOSELY_PACKED_PIXEL_STREAM_YCBCR20 = 0x0c,
