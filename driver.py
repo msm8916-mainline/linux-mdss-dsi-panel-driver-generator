@@ -103,6 +103,19 @@ def msleep(m: int) -> str:
 		return f"usleep_range({u}, {u + 1000})"
 
 
+# msleep(< 20) will possibly sleep up to 20ms
+# In this case, usleep_range should be used
+def dsi_msleep(m: int) -> str:
+	if m >= 20:
+		return f"mipi_dsi_msleep(&dsi_ctx, {m})"
+	else:
+		# It's hard to say what a good range would be...
+		# Downstream uses usleep_range(m * 1000, m * 1000) but that doesn't quite sound great
+		# Sleep for up to 1ms longer for now
+		u = m * 1000
+		return f"mipi_dsi_usleep_range(&dsi_ctx, {u}, {u + 1000})"
+
+
 def generate_reset(p: Panel, options: Options) -> str:
 	if not p.reset_seq:
 		return ''
@@ -126,21 +139,14 @@ def generate_commands(p: Panel, options: Options, cmd_name: str) -> str:
 	s = f'''\
 static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 {{
+	struct mipi_dsi_multi_context dsi_ctx = {{ .dsi = ctx->dsi }};
 '''
-	variables = ['struct mipi_dsi_device *dsi = ctx->dsi']
-	if '(dev, ' in cmd.generated:
-		variables.append('struct device *dev = &dsi->dev')
-	if 'ret = ' in cmd.generated:
-		variables.append('int ret')
-
-	for v in variables:
-		s += f'\t{v};\n'
 
 	if p.cmds['on'].state != p.cmds['off'].state:
 		if cmd.state == CommandSequence.State.LP_MODE:
-			s += '\n\tdsi->mode_flags |= MIPI_DSI_MODE_LPM;\n'
+			s += '\n\tctx->dsi->mode_flags |= MIPI_DSI_MODE_LPM;\n'
 		elif cmd.state == CommandSequence.State.HS_MODE:
-			s += '\n\tdsi->mode_flags &= ~MIPI_DSI_MODE_LPM;\n'
+			s += '\n\tctx->dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;\n'
 
 	block = True
 	for c in cmd.seq:
@@ -150,10 +156,10 @@ static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 
 		s += c.generated + '\n'
 		if c.wait and c.wait > options.ignore_wait:
-			s += f'\t{msleep(c.wait)};\n'
+			s += f'\t{dsi_msleep(c.wait)};\n'
 
 	s += '''
-	return 0;
+	return dsi_ctx.accum_err;
 }
 '''
 	return s

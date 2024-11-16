@@ -62,8 +62,8 @@ class TearMode(IntEnum):
 # MIPI DCS commands
 @unique
 class DCSCommand(Enum):
-	NOP = 0x00, 0, 'mipi_dsi_dcs_nop'
-	SOFT_RESET = 0x01, 0, 'mipi_dsi_dcs_soft_reset'
+	NOP = 0x00, 0, 'mipi_dsi_dcs_nop_multi'
+	SOFT_RESET = 0x01, 0, 'mipi_dsi_dcs_soft_reset_multi'
 	# GET_COMPRESSION_MODE = 0x03,
 	# GET_DISPLAY_ID = 0x04,
 	# GET_ERROR_COUNT_ON_DSI = 0x05,
@@ -77,8 +77,8 @@ class DCSCommand(Enum):
 	# GET_DISPLAY_MODE = 0x0D,
 	# GET_SIGNAL_MODE = 0x0E,
 	# GET_DIAGNOSTIC_RESULT = 0x0F,
-	ENTER_SLEEP_MODE = 0x10, 0, 'mipi_dsi_dcs_enter_sleep_mode'
-	EXIT_SLEEP_MODE = 0x11, 0, 'mipi_dsi_dcs_exit_sleep_mode'
+	ENTER_SLEEP_MODE = 0x10, 0, 'mipi_dsi_dcs_enter_sleep_mode_multi'
+	EXIT_SLEEP_MODE = 0x11, 0, 'mipi_dsi_dcs_exit_sleep_mode_multi'
 	ENTER_PARTIAL_MODE = 0x12, 0,
 	ENTER_NORMAL_MODE = 0x13, 0,
 	# GET_IMAGE_CHECKSUM_RGB = 0x14,
@@ -86,31 +86,31 @@ class DCSCommand(Enum):
 	EXIT_INVERT_MODE = 0x20, 0,
 	ENTER_INVERT_MODE = 0x21, 0,
 	SET_GAMMA_CURVE = 0x26, 1,
-	SET_DISPLAY_OFF = 0x28, 0, 'mipi_dsi_dcs_set_display_off'
-	SET_DISPLAY_ON = 0x29, 0, 'mipi_dsi_dcs_set_display_on'
-	SET_COLUMN_ADDRESS = 0x2A, 4, 'mipi_dsi_dcs_set_column_address', _get_params_int(2, 'big')
-	SET_PAGE_ADDRESS = 0x2B, 4, 'mipi_dsi_dcs_set_page_address', _get_params_int(2, 'big')
+	SET_DISPLAY_OFF = 0x28, 0, 'mipi_dsi_dcs_set_display_off_multi'
+	SET_DISPLAY_ON = 0x29, 0, 'mipi_dsi_dcs_set_display_on_multi'
+	SET_COLUMN_ADDRESS = 0x2A, 4, 'mipi_dsi_dcs_set_column_address_multi', _get_params_int(2, 'big')
+	SET_PAGE_ADDRESS = 0x2B, 4, 'mipi_dsi_dcs_set_page_address_multi', _get_params_int(2, 'big')
 	WRITE_MEMORY_START = 0x2C,
 	WRITE_LUT = 0x2D,
 	READ_MEMORY_START = 0x2E,
 	SET_PARTIAL_ROWS = 0x30,
 	SET_PARTIAL_COLUMNS = 0x31,
 	SET_SCROLL_AREA = 0x33, 6,
-	SET_TEAR_OFF = 0x34, 0, 'mipi_dsi_dcs_set_tear_off'
-	SET_TEAR_ON = 0x35, 1, 'mipi_dsi_dcs_set_tear_on', TearMode.get_params
+	SET_TEAR_OFF = 0x34, 0, 'mipi_dsi_dcs_set_tear_off_multi'
+	SET_TEAR_ON = 0x35, 1, 'mipi_dsi_dcs_set_tear_on_multi', TearMode.get_params
 	SET_ADDRESS_MODE = 0x36, 1,
 	SET_SCROLL_START = 0x37, 2,
 	EXIT_IDLE_MODE = 0x38, 0,
 	ENTER_IDLE_MODE = 0x39, 0,
-	SET_PIXEL_FORMAT = 0x3A, 1, 'mipi_dsi_dcs_set_pixel_format'
+	SET_PIXEL_FORMAT = 0x3A, 1, 'mipi_dsi_dcs_set_pixel_format_multi'
 	WRITE_MEMORY_CONTINUE = 0x3C,
 	SET_3D_CONTROL = 0x3D,
 	READ_MEMORY_CONTINUE = 0x3E,
 	# GET_3D_CONTROL = 0x3F,
 	SET_VSYNC_TIMING = 0x40
-	SET_TEAR_SCANLINE = 0x44, 2, 'mipi_dsi_dcs_set_tear_scanline', _get_params_int(2, 'big')
+	SET_TEAR_SCANLINE = 0x44, 2, 'mipi_dsi_dcs_set_tear_scanline_multi', _get_params_int(2, 'big')
 	GET_SCANLINE = 0x45,
-	SET_DISPLAY_BRIGHTNESS = 0x51, (1, 2), 'mipi_dsi_dcs_set_display_brightness', _get_params_int(2, 'little')
+	SET_DISPLAY_BRIGHTNESS = 0x51, (1, 2), 'mipi_dsi_dcs_set_display_brightness_multi', _get_params_int(2, 'little')
 	# GET_DISPLAY_BRIGHTNESS = 0x52,
 	WRITE_CONTROL_DISPLAY = 0x53, 1,
 	# GET_CONTROL_DISPLAY = 0x54,
@@ -136,13 +136,9 @@ class DCSCommand(Enum):
 	def identifier(self):
 		return 'MIPI_DCS_' + self.name
 
-	@property
-	def description(self):
-		return self.name.lower().replace('_', ' ')
-
 	def get_params(self, b: bytes):
 		params = self._get_params(b)
-		params.insert(0, 'dsi')
+		params.insert(0, '&dsi_ctx')
 		return params
 
 	@staticmethod
@@ -178,21 +174,15 @@ DCSCommand._DUMB_ALLOWED = [DCSCommand.ENTER_SLEEP_MODE, DCSCommand.EXIT_SLEEP_M
 							DCSCommand.SET_DISPLAY_ON, DCSCommand.SET_DISPLAY_OFF]
 
 
-def _generate_checked_call(method: str, args: List[str], description: str) -> str:
-	return f'''\
-{wrap.join(f'	ret = {method}(', ',', ');', args)}
-	if (ret < 0) {{
-		dev_err(dev, "Failed to {description}: %d\\n", ret);
-		return ret;
-	}}\
-'''
+def _generate_call(method: str, args: List[str]) -> str:
+	return wrap.join(f'\t{method}(', ',', ');', args)
 
 
 def _generate_generic_write(t: Transaction, payload: bytes, options: Options) -> str:
 	# TODO: Warn when downstream uses LONG_WRITE but mainline would use SHORT
 	params = _get_params_hex(payload)
-	params.insert(0, 'dsi')
-	return wrap.join('\tmipi_dsi_generic_write_seq(', ',', ');', params, force=2)
+	params.insert(0, '&dsi_ctx')
+	return wrap.join('\tmipi_dsi_generic_write_seq_multi(', ',', ');', params, force=2)
 
 
 def _generate_dcs_write(t: Transaction, payload: bytes, options: Options) -> str:
@@ -200,28 +190,29 @@ def _generate_dcs_write(t: Transaction, payload: bytes, options: Options) -> str
 
 	dcs = DCSCommand.find(payload, options.dumb_dcs)
 	if dcs and dcs.method:
-		return _generate_checked_call(dcs.method, dcs.get_params(payload[1:]), dcs.description)
+		return _generate_call(dcs.method, dcs.get_params(payload[1:]))
 
 	params = _get_params_hex(payload)
 	if dcs:
 		params[0] = dcs.identifier
-	params.insert(0, 'dsi')
+	params.insert(0, '&dsi_ctx')
 
-	return wrap.join('\tmipi_dsi_dcs_write_seq(', ',', ');', params, force=2)
+	return wrap.join('\tmipi_dsi_dcs_write_seq_multi(', ',', ');', params, force=2)
 
 
 def _generate_peripheral(t: Transaction, payload: bytes, options: Options) -> str:
 	if t == Transaction.TURN_ON_PERIPHERAL:
-		return _generate_checked_call('mipi_dsi_turn_on_peripheral', ['dsi'], t.description)
+		return _generate_call('mipi_dsi_turn_on_peripheral_multi', ['&dsi_ctx'])
 	elif t == Transaction.SHUTDOWN_PERIPHERAL:
-		return _generate_checked_call('mipi_dsi_shutdown_peripheral', ['dsi'], t.description)
+		return _generate_call('mipi_dsi_shutdown_peripheral_multi', ['&dsi_ctx'])
 	else:
 		raise ValueError(t)
 
 
 def _generate_compression_mode(t: Transaction, payload: bytes, options: Options) -> str:
-	return _generate_checked_call('mipi_dsi_compression_mode', ['dsi', str(bool(payload[0])).lower()],
-								  'set compression mode')
+	return _generate_call('mipi_dsi_compression_mode_ext_multi',
+			['&dsi_ctx', str(bool(payload[0])).lower(),
+			'MIPI_DSI_COMPRESSION_DSC', '0']) # TODO: Do we need something != 0?
 
 
 def _generate_ignore(t: Transaction, payload: bytes, options: Options) -> str:
@@ -296,10 +287,6 @@ class Transaction(Enum):
 	@property
 	def identifier(self):
 		return 'MIPI_DSI_' + self.name
-
-	@property
-	def description(self):
-		return self.name.lower().replace('_', ' ')
 
 	@property
 	def is_long(self):
