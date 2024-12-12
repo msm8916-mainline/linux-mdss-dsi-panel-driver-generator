@@ -404,8 +404,14 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 		if name == "reset":
 			init = "GPIOD_OUT_HIGH"
 
+		if name == "reset" and options.optional_reset:
+			s += f'''
+	ctx->{name}_gpio = devm_gpiod_get_optional(dev, "{name}", {init});'''
+		else:
+			s += f'''
+	ctx->{name}_gpio = devm_gpiod_get(dev, "{name}", {init});'''
+
 		s += f'''
-	ctx->{name}_gpio = devm_gpiod_get(dev, "{name}", {init});
 	if (IS_ERR(ctx->{name}_gpio))
 		return dev_err_probe(dev, PTR_ERR(ctx->{name}_gpio),
 				     "Failed to get {name}-gpios\\n");
