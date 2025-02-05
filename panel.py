@@ -38,18 +38,19 @@ class TrafficMode(Enum):
 
 	@staticmethod
 	def parse(prop: libfdt.Property) -> Optional[TrafficMode]:
-		if prop.is_str():
-			return TrafficMode(prop.as_str())
+		if prop:
+			if prop.is_str():
+				return TrafficMode(prop.as_str())
 
-		print(f"WARNING: qcom,mdss-dsi-traffic-mode is not a null terminated string:", prop)
+			print(f"WARNING: qcom,mdss-dsi-traffic-mode is not a null terminated string:", prop)
 
-		# Some Samsung panels have the traffic mode as index for some reason
-		if len(prop) == 4:
-			i = prop.as_uint32()
-			traffic_modes = list(TrafficMode.__members__.values())
-			if i < len(traffic_modes):
-				print(f"Interpreting qcom,mdss-dsi-traffic-mode as numeric index: {i} == {traffic_modes[i]}")
-				return traffic_modes[i]
+			# Some Samsung panels have the traffic mode as index for some reason
+			if len(prop) == 4:
+				i = prop.as_uint32()
+				traffic_modes = list(TrafficMode.__members__.values())
+				if i < len(traffic_modes):
+					print(f"Interpreting qcom,mdss-dsi-traffic-mode as numeric index: {i} == {traffic_modes[i]}")
+					return traffic_modes[i]
 
 		# Use the default in mdss_dsi_panel.c
 		print("Falling back to MIPI_DSI_MODE_VIDEO_SYNC_PULSE")
@@ -228,7 +229,7 @@ class Panel:
 		self.framerate = fdt.getprop(mode_node, 'qcom,mdss-dsi-panel-framerate').as_uint32()
 		self.bpp = fdt.getprop(node, 'qcom,mdss-dsi-bpp').as_uint32()
 		self.mode = Mode(fdt.getprop(node, 'qcom,mdss-dsi-panel-type').as_str())
-		self.traffic_mode = TrafficMode.parse(fdt.getprop(node, 'qcom,mdss-dsi-traffic-mode'))
+		self.traffic_mode = TrafficMode.parse(fdt.getprop_or_none(node, 'qcom,mdss-dsi-traffic-mode'))
 
 		backlight = fdt.getprop_or_none(node, 'qcom,mdss-dsi-bl-pmic-control-type')
 		self.backlight = BacklightControl(backlight.as_str()) if backlight else None
