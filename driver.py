@@ -26,7 +26,7 @@ def generate_includes(p: Panel, options: Options) -> str:
 		},
 	}
 
-	if p.reset_seq:
+	if p.reset_seq or options.backlight_gpio:
 		includes['linux'].add('gpio/consumer.h')
 	if options.regulator:
 		includes['linux'].add('regulator/consumer.h')
