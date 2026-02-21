@@ -544,7 +544,7 @@ def generate_driver(p: Panel, options: Options) -> None:
 
 {wrap.simple([f'static inline', f'struct {p.short_id} *to_{p.short_id}(struct drm_panel *panel)'])}
 {{
-	return container_of(panel, struct {p.short_id}, panel);
+	return container_of_const(panel, struct {p.short_id}, panel);
 }}
 {generate_reset(p, options)}
 {generate_commands(p, options, 'on')}
