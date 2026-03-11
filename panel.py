@@ -281,6 +281,8 @@ class Panel:
 
 		if self.bpp == 24:
 			self.format = 'MIPI_DSI_FMT_RGB888'
+		elif self.bpp == 30:
+			self.format = 'MIPI_DSI_FMT_RGB101010'
 		else:
 			raise ValueError(f'Unsupported bpp: {self.bpp} (TODO)')
 
