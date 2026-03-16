@@ -154,6 +154,9 @@ static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 			s += '\n'
 		block = '{' in c.generated
 
+		if cmd_name == 'on' and 'panel_power_on' in cmd.generated:
+			s += '/* FIXME: Call this in .enable() */\n'
+
 		s += c.generated + '\n'
 		if c.wait and c.wait > options.ignore_wait:
 			s += f'\t{dsi_msleep(c.wait)};\n'
