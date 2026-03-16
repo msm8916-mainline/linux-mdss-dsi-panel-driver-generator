@@ -22,6 +22,58 @@ def generate_gpios(options: Options):
 	for name, flags in options.gpios.items():
 		flags = "GPIO_ACTIVE_LOW" if flags & GpioFlag.ACTIVE_LOW else "GPIO_ACTIVE_HIGH"
 		s += f"\t\t{name}-gpios = <&tlmm XY {flags}>;\n"
+
+	if 'backlight' in options.gpios:
+		s += '''
+		pinctrl-0 = <&lcd_bl_en_default>;
+		pinctrl-names = "default";
+'''
+	return s
+
+
+def generate_tlmm(options: Options):
+	s = ""
+
+	if not options.gpios:
+	    return s
+
+	tlmm = []
+
+	if 'backlight' in options.gpios:
+		tlmm.append('''\
+	lcd_bl_en_default: lcd-bl-en-default-state {
+		pins = "gpioXY";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};\
+''')
+
+	if 'reset' in options.gpios:
+		tlmm.append('''\
+	mdss_default: mdss-default-state {
+		pins = "gpioXY";
+		function = "gpio";
+		drive-strength = <8>;
+		bias-disable;
+	};\
+''')
+
+		tlmm.append('''\
+	mdss_sleep: mdss-sleep-state {
+		pins = "gpioXY";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};\
+''')
+
+	s = f'''\
+&tlmm {{
+{"\n\n".join(tlmm)}
+}};
+'''
+
 	return s
 
 
@@ -35,6 +87,17 @@ def generate_panel_dtsi(p: Panel, options: Options) -> None:
 ''')
 		f.write(f'''\
 &mdss_dsi0 {{
+''')
+
+		if 'reset' in options.gpios:
+			f.write('''\
+	pinctrl-0 = <&mdss_default>;
+	pinctrl-1 = <&mdss_sleep>;
+	pinctrl-names = "default", "sleep";
+
+''')
+
+		f.write(f'''\
 	panel@0 {{
 		compatible = "{options.compatible}";
 		reg = <0>;
@@ -69,3 +132,5 @@ def generate_panel_dtsi(p: Panel, options: Options) -> None:
     phy-type = <PHY_TYPE_CPHY>;
 };
 ''')
+
+		f.write(generate_tlmm(options))
