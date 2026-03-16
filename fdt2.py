@@ -15,6 +15,14 @@ class Fdt2(FdtRo):
 				break
 			yield offset
 
+	def find_by_path(self, path):
+		offset = check_err(
+			fdt_path_offset(self._fdt, path),
+			[FDT_ERR_NOTFOUND])
+		if offset == -FDT_ERR_NOTFOUND:
+			return None
+		yield offset
+
 	def subnodes(self, parent):
 		offset = self.first_subnode(parent, [FDT_ERR_NOTFOUND])
 		while offset != -FDT_ERR_NOTFOUND:
