@@ -7,7 +7,7 @@ import mipi
 import simple
 import wrap
 from generator import Options, GpioFlag
-from panel import Panel, BacklightControl, CommandSequence, CompressionMode
+from panel import Panel, BacklightControl, CommandSequence, CompressionMode, Mode
 
 
 def generate_includes(p: Panel, options: Options) -> str:
@@ -157,6 +157,14 @@ static int {p.short_id}_{cmd_name}(struct {p.short_id} *ctx)
 		s += c.generated + '\n'
 		if c.wait and c.wait > options.ignore_wait:
 			s += f'\t{dsi_msleep(c.wait)};\n'
+
+
+	if cmd_name == 'on' and p.mode == Mode.CMD_MODE:
+		has_tear_on = any("set_tear_on" in c.generated for c in cmd.seq)
+		if not has_tear_on:
+			s += '''
+	mipi_dsi_dcs_set_tear_on_multi(&dsi_ctx, MIPI_DSI_DCS_TEAR_MODE_VBLANK);
+'''
 
 	s += '''
 	return dsi_ctx.accum_err;
