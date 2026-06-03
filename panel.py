@@ -96,6 +96,7 @@ class BacklightControl(Enum):
 	DCS = 'bl_ctrl_dcs'
 	WLED = 'bl_ctrl_wled'
 	SAMSUNG_PWM = 'bl_ctrl_ss_pwm'
+	EXTERNAL = 'bl_ctrl_external'
 
 
 @unique
