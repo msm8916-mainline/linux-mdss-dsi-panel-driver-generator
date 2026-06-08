@@ -493,6 +493,29 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 	return s
 
 
+def generate_get_modes(p: Panel) -> str:
+	sig = wrap.join(f'static int {p.short_id}_get_modes(', ',', ')',
+					['struct drm_panel *panel', 'struct drm_connector *connector'])
+	if not p.extra_timings:
+		return f'''\
+{sig}
+{{
+	return drm_connector_helper_get_modes_fixed(connector, &{p.short_id}_mode);
+}}'''
+
+	return f'''\
+{sig}
+{{
+	int count = 0;
+
+	for (int i = 0; i < ARRAY_SIZE({p.short_id}_modes); i++)
+		count += drm_connector_helper_get_modes_fixed(connector,
+								&{p.short_id}_modes[i]);
+
+	return count;
+}}'''
+
+
 def generate_driver(p: Panel, options: Options) -> None:
 	# Generate command sequences early
 	for cmd in p.cmds.values():
@@ -552,10 +575,7 @@ def generate_driver(p: Panel, options: Options) -> None:
 {generate_prepare(p, options)}
 {generate_unprepare(p, options)}
 {simple.generate_mode(p)}
-{wrap.join(f'static int {p.short_id}_get_modes(', ',', ')', ['struct drm_panel *panel', 'struct drm_connector *connector'])}
-{{
-	return drm_connector_helper_get_modes_fixed(connector, &{p.short_id}_mode);
-}}
+{generate_get_modes(p)}
 
 static const struct drm_panel_funcs {p.short_id}_panel_funcs = {{
 	.prepare = {p.short_id}_prepare,
