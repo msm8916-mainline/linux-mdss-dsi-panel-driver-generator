@@ -453,7 +453,9 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 '''
 
 	s += '''
-	drm_panel_add(&ctx->panel);
+	ret = devm_drm_panel_add(dev, &ctx->panel);
+	if (ret)
+		return ret;
 '''
 
 	if p.compression_mode == CompressionMode.DSC:
@@ -479,15 +481,7 @@ static int {p.short_id}_probe(struct mipi_dsi_device *dsi)
 '''
 
 	s += '''
-	ret = mipi_dsi_attach(dsi);
-	if (ret < 0) {
-		drm_panel_remove(&ctx->panel);
-		return dev_err_probe(dev, ret, "Failed to attach to DSI host\\n");
-	}
-'''
-
-	s += '''
-	return 0;
+	return devm_mipi_dsi_attach(dev, dsi);
 }
 '''
 	return s
@@ -564,18 +558,6 @@ static const struct drm_panel_funcs {p.short_id}_panel_funcs = {{
 }};
 
 {generate_backlight(p, options)}{generate_probe(p, options)}
-static void {p.short_id}_remove(struct mipi_dsi_device *dsi)
-{{
-	struct {p.short_id} *ctx = mipi_dsi_get_drvdata(dsi);
-	int ret;
-
-	ret = mipi_dsi_detach(dsi);
-	if (ret < 0)
-		dev_err(&dsi->dev, "Failed to detach from DSI host: %d\\n", ret);
-
-	drm_panel_remove(&ctx->panel);
-}}
-
 static const struct of_device_id {p.short_id}_of_match[] = {{
 	{{ .compatible = "{compatible}" }}, // FIXME
 	{{ /* sentinel */ }}
@@ -584,7 +566,6 @@ MODULE_DEVICE_TABLE(of, {p.short_id}_of_match);
 
 static struct mipi_dsi_driver {p.short_id}_driver = {{
 	.probe = {p.short_id}_probe,
-	.remove = {p.short_id}_remove,
 	.driver = {{
 		.name = "{module}",
 		.of_match_table = {p.short_id}_of_match,
