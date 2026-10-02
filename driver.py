@@ -14,7 +14,7 @@ def generate_includes(p: Panel, options: Options) -> str:
 	includes = {
 		'linux': {
 			'module.h',
-			'mod_devicetable.h',
+			'device-id/of.h',
 			'delay.h',
 		},
 		'video': set(),
