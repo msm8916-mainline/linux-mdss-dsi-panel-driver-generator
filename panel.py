@@ -141,8 +141,14 @@ class CommandSequence:
 		LP_MODE = 'dsi_lp_mode'
 		HS_MODE = 'dsi_hs_mode'
 
+		@staticmethod
+		def parse(prop: Optional[libfdt.Property]) -> CommandSequence.State:
+			if not prop:
+				return CommandSequence.State.LP_MODE
+			return CommandSequence.State(prop.as_str())
+
 	def __init__(self, fdt: Fdt2, node: int, cmd: str) -> None:
-		self.state = CommandSequence.State(fdt.getprop(node, f'qcom,mdss-dsi-{cmd}-command-state').as_str())
+		self.state = CommandSequence.State.parse(fdt.getprop_or_none(node, f'qcom,mdss-dsi-{cmd}-command-state'))
 		self.seq = []
 
 		prop = fdt.getprop_or_none(node, f'qcom,mdss-dsi-{cmd}-command')
