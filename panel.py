@@ -356,6 +356,8 @@ class Panel:
 			displays = fdt.getprop_or_none(display, 'qcom,dsi-display-list')
 			if displays is None:
 				dsi_panel = fdt.getprop_or_none(display, 'qcom,dsi-panel')
+				if dsi_panel is None:
+					dsi_panel = fdt.getprop_or_none(display, 'qcom,dsi-default-panel')
 				if dsi_panel is not None:
 					panel_phandles.add(dsi_panel.as_uint32())
 			else:
