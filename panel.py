@@ -105,6 +105,13 @@ class CompressionMode(Enum):
 	DSC = "dsc"
 
 
+@dataclass
+class DisplayTiming:
+	h: Dimension
+	v: Dimension
+	framerate: int
+
+
 class Dimension:
 	@unique
 	class Type(Enum):
@@ -237,20 +244,12 @@ def _remove_before(text: str, sub: str) -> str:
 	return text[i + 1:] if i >= 0 else text
 
 
-def _find_mode_node(fdt: Fdt2, node: int) -> int:
+def _find_mode_nodes(fdt: Fdt2, node: int) -> List[int]:
 	timings_node = fdt.subnode_or_none(node, "qcom,mdss-dsi-display-timings")
 	if timings_node is None:
-		return node
+		return [node]
 
-	mode_node = None
-	for timing in fdt.subnodes(timings_node):
-		if mode_node:
-			print("WARNING: Multiple display timings are not supported yet, using first!")
-			break
-		mode_node = timing
-
-	assert mode_node, "No display timings found"
-	return mode_node
+	return list(fdt.subnodes(timings_node))
 
 
 class Panel:
@@ -263,10 +262,10 @@ class Panel:
 									 '_fhd', '_hd', '_qhd', '_720p', '_1080p',
 									 '_wvga', '_fwvga', '_qvga', '_xga', '_wxga')
 
-		# Newer SoCs can use panels in different modes (resolution, refresh rate etc).
-		# We don't support this properly yet but many panels just have a single mode
-		# ("timing") defined, so let's try to support this here.
-		mode_node = _find_mode_node(fdt, node)
+		mode_nodes = _find_mode_nodes(fdt, node)
+		# Command sequences and DSC/compression settings are only read from the first timing.
+		# Multiple timings typically differ only in resolution/refresh rate.
+		mode_node = mode_nodes[0]
 		self.h = Dimension(fdt, node, mode_node, Dimension.Type.HORIZONTAL)
 		self.v = Dimension(fdt, node, mode_node, Dimension.Type.VERTICAL)
 		self.framerate = fdt.getprop(mode_node, 'qcom,mdss-dsi-panel-framerate').as_uint32()
@@ -373,6 +372,13 @@ class Panel:
 
 			self.dsc_version = fdt.getprop_uint32(mode_node, 'qcom,mdss-dsc-version', default=0x11)
 			self.dsc_scr_version = fdt.getprop_uint32(mode_node, 'qcom,mdss-dsc-scr-version', default=0)
+
+		self.extra_timings: List[DisplayTiming] = []
+		for mn in mode_nodes[1:]:
+			h = Dimension(fdt, node, mn, Dimension.Type.HORIZONTAL)
+			v = Dimension(fdt, node, mn, Dimension.Type.VERTICAL)
+			fr = fdt.getprop(mn, 'qcom,mdss-dsi-panel-framerate').as_uint32()
+			self.extra_timings.append(DisplayTiming(h, v, fr))
 
 	@staticmethod
 	def parse(fdt: Fdt2, node: int) -> Panel:
