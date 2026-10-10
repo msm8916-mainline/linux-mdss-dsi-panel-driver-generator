@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 from __future__ import annotations
 
+import enum
 import itertools
 from dataclasses import dataclass
 from enum import Enum, unique
@@ -128,10 +129,22 @@ class Command:
 	type: mipi.Transaction
 	last: bool
 	vc: int
-	ack: bool
+	flags: Flag
 	wait: int
 	payload: bytes
 	generated: str = None
+
+	@unique
+	class Flag(enum.Flag):
+		# drm_mipi_dsi.h in upstream Linux
+		REQ_ACK = 1 << 0
+		USE_LPM = 1 << 1
+
+		# Custom flags in Qualcomm's dsi_panel.h
+		ASYNC_OVERRIDE = 1 << 4
+		CMD_DMA_SCHED = 1 << 5
+		BATCH_COMMAND = 1 << 6
+		UNICAST_COMMAND = 1 << 7
 
 
 class CommandSequence:
@@ -169,7 +182,7 @@ class CommandSequence:
 				itr = itertools.chain(itr, on)
 
 		for dtype in itr:
-			last, vc, ack, wait = next(itr), next(itr), next(itr), next(itr)
+			ctrl, vc, flags, wait = next(itr), next(itr), next(itr), next(itr)
 			dlen = next(itr) << 8 | next(itr)
 			payload = bytes(next(itr) for _ in range(0, dlen))
 
@@ -181,7 +194,30 @@ class CommandSequence:
 			if 0 < max_dlen < dlen:
 				payload = payload[:max_dlen]
 
-			self.seq.append(Command(t, last, vc, ack, wait, payload))
+			last = bool(ctrl & 1)  # Only older DTBs use this, see below
+			flags = Command.Flag(flags)
+
+			cmd = Command(t, last, vc, flags, wait, payload)
+			if flags & ~(Command.Flag.REQ_ACK | Command.Flag.BATCH_COMMAND):
+				print(f"WARNING: Unsupported flag used in {cmd}")
+			if ctrl & ~1:
+				print(f"WARNING: Unsupported controller index {ctrl} in {cmd}")
+
+			self.seq.append(cmd)
+
+		# BATCH_COMMAND is the opposite of "last", but unfortunately not having
+		# BATCH_COMMAND set does not tell us anything, because only newer DTBs
+		# use it. Look if any command has the flag set and then re-compute last
+		# for all the commands.
+		if any(bool(c.flags & Command.Flag.BATCH_COMMAND) for c in self.seq):
+			for c in self.seq:
+				c.last = not bool(c.flags & Command.Flag.BATCH_COMMAND)
+		elif not any(c.last for c in self.seq):
+			# Some command must be last, so this is probably a newer DTB
+			# that would use BATCH_COMMAND, but there aren't any batched
+			# commands. In other words, all commands should have last = True.
+			for c in self.seq:
+				c.last = True
 
 
 def _remove_prefixes(text: str, *args: str) -> str:

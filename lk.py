@@ -4,7 +4,7 @@ from __future__ import annotations
 import datetime
 
 import wrap
-from panel import Panel, Mode, CommandSequence, LaneMap, TrafficMode
+from panel import Panel, Mode, Command, CommandSequence, LaneMap, TrafficMode
 
 
 def generate_commands(p: Panel, cmd_name: str) -> str:
@@ -27,7 +27,8 @@ def generate_commands(p: Panel, cmd_name: str) -> str:
 			b.append(next(itr, 0))
 
 		b.append(c.type.value | c.vc << 6)
-		b.append(int(c.ack) << 5 | int(long) << 6 | int(c.last) << 7)
+		ack = bool(c.flags & Command.Flag.REQ_ACK)
+		b.append(int(ack) << 5 | int(long) << 6 | int(c.last) << 7)
 
 		if long:
 			b += bytes(c.payload)
